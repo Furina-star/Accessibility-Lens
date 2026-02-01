@@ -1,5 +1,5 @@
 name: accessibility_lens
-description: "A new Flutter project."
+description: "AI-powered visual assistance app for visually impaired users."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -31,14 +31,38 @@ dependencies:
   flutter:
     sdk: flutter
 
+    # Camera
+  camera: ^0.11.3
+  
+  # AI / ML Kit
+  google_mlkit_text_recognition: ^0.15.0
+  google_mlkit_image_labeling: ^0.14.1
+  
+  # Voice
+  speech_to_text: ^7.3.0
+  flutter_tts: ^4.2.5
+  
+  # Haptics & System
+  vibration: ^3.1.5
+  volume_controller: ^3.4.1
+  
+  # Permissions
+  permission_handler: ^12.0.1
+
+  characters: ^1.4.0
+  matcher: ^0.12.17
+  material_color_utilities: ^0.11.1
+  meta: ^1.17.0
+  test_api: ^0.7.7
+
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
-    sdk: flutter
-
+    sdk: flutter  
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
