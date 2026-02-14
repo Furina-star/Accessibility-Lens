@@ -1,37 +1,31 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'dart:async';
+import 'package:vibration/vibration.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:volume_controller/volume_controller.dart'; //
 
 class HapticService {
-  static Timer? _heartbeatTimer;
+  static final HapticService _instance = HapticService._internal();
+  factory HapticService() => _instance;
+  HapticService._internal();
 
-  // Success: Short and clear
-// Success: Using a stronger call to ensure it's felt through the phone case
-  static void successPulse() {
-    HapticFeedback.vibrate(); // This is the strongest standard vibration
-    debugPrint("Haptic: Success Pulse Triggered");
-  }
+  final FlutterTts _tts = FlutterTts();
 
-  // Error: Three heavy pulses [cite: 14]
-  static void errorPattern() async {
-    for (int i = 0; i < 3; i++) {
-      // Use the full vibrate() for errors to ensure it's felt [cite: 14]
-      await SystemChannels.platform.invokeMethod('HapticFeedback.vibrate');
-      await Future.delayed(const Duration(milliseconds: 200));
+  void triggerDucking(bool active) {
+    if (active) {
+      // Use the static instance instead of a constructor
+      VolumeController.instance.setVolume(0.2);
+    } else {
+      VolumeController.instance.setVolume(0.7);
     }
   }
 
-  // Processing: The continuous heartbeat [cite: 15]
-  static void startHeartbeat() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
-      // Light pulse so it doesn't drain battery but stays felt [cite: 15, 16]
-      HapticFeedback.mediumImpact();
-    });
+  void lowLightWarning() => Vibration.vibrate(duration: 500);
+
+  void lensBlockedAlert() {
+    Vibration.vibrate(pattern: [0, 500, 100, 500]);
+    _tts.speak("Lens covered");
   }
 
-  static void stopHeartbeat() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = null;
-  }
+  void heartbeat() => Vibration.vibrate(pattern: [0, 100, 800], repeat: 0);
+
+  void stop() => Vibration.cancel();
 }
