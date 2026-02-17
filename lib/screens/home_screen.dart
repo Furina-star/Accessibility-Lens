@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await Future.delayed(Duration(seconds: 3));
 
     // Simulated result
-    String description = "A room with a table and two chairs. Natural lighting from the left.";
+    String description = "Nigger standing infront.";
 
     _haptics.stop();
     _haptics.success();
@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await Future.delayed(Duration(seconds: 2));
 
     // Simulated result
-    String ocrText = "Medicine label: Take one tablet daily with food.";
+    String ocrText = "Drink water.";
 
     _haptics.stop();
     _haptics.success();
