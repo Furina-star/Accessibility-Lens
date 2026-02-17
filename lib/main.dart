@@ -1,18 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:camera/camera.dart';
 import 'screens/home_screen.dart';
+import 'services/camera_service.dart';
 
-void main() async {
+// We make main 'async' because we have to wait for the camera hardware to wake up
+Future<void> main() async {
+  // 1. Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock to portrait mode
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  try {
+    // 2. Get the list of available cameras on the device
+    final cameras = await availableCameras();
 
+    // 3. Set up the camera in your Service so the UI can see it
+    if (cameras.isNotEmpty) {
+      CameraService().controller = CameraController(
+        cameras.first, // Usually the back camera
+        ResolutionPreset.high,
+        enableAudio: false, // Prevents feedback loops from the start
+      );
+
+      // Initialize the controller
+      await CameraService().controller!.initialize();
+
+      // Note: Camera monitoring is now started by CameraGuidanceService
+      // in HomeScreen's initState, not here
+    }
+  } catch (e) {
+    print("Camera initialization error: $e");
+  }
+
+  // 4. Run the actual App
   runApp(const AccessibilityLensApp());
 }
-
 
 class AccessibilityLensApp extends StatelessWidget {
   const AccessibilityLensApp({super.key});
@@ -20,92 +40,13 @@ class AccessibilityLensApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+      title: 'Accessibility Lens',
+      debugShowCheckedModeBanner: false, // Clean UI for BVI users
+      theme: ThemeData(
+        brightness: Brightness.dark, // Better for battery and some low-vision users
+        primarySwatch: Colors.blue,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+      home: HomeScreen(), // Points to your home_screen.dart
     );
   }
 }
