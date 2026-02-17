@@ -23,14 +23,14 @@ Future<void> main() async {
       // Initialize the controller
       await CameraService().controller!.initialize();
 
-      // 4. Start your Proactive Metadata Monitor (the lighting/focus checker)
-      CameraService().startProactiveMonitor();
+      // Note: Camera monitoring is now started by CameraGuidanceService
+      // in HomeScreen's initState, not here
     }
   } catch (e) {
     print("Camera initialization error: $e");
   }
 
-  // 5. Run the actual App
+  // 4. Run the actual App
   runApp(const AccessibilityLensApp());
 }
 
