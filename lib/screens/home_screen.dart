@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../services/camera_service.dart';
 import '../services/camera_guidance_service.dart';
 import '../services/tts_service.dart'; // Changed from audio_feedback_manager
 import '../services/haptic_service.dart';
 import '../widgets/zone_gesture_detector.dart';
 import '../widgets/semantic_widgets.dart';
+import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -87,23 +89,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() => _statusMessage = "Ready");
   }
 
-  /// Double Tap: "Read the text" (OCR)
+  /// OCR (INPUT) Double Tap: "Read the text"
   Future<void> _handleDoubleTap() async {
-    setState(() => _statusMessage = "Reading text...");
+    final controller = _cameraService.controller;
 
+    if (controller == null || !controller.value.isInitialized){
+      await _audio.speak("Camera not ready");
+    }
+
+    setState(() => _statusMessage = "Reading text...");
     await _audio.announceCapturingText();
 
-    // Simulate OCR processing
-    await Future.delayed(Duration(seconds: 2));
+    // OCR Processing
+    try{
+      final XFile photo = await controller!.takePicture();
+      await _processImage(photo.path);
 
-    // Simulated result
-    String ocrText = "Drink water.";
-
-    _haptics.stop();
-    _haptics.success();
-    await _audio.speak(ocrText);
-
-    setState(() => _statusMessage = "Ready");
+    }catch (e){
+      print ("Error during OCR $e");
+      setState(() => _statusMessage = "Error reading text");
+      await _audio.speak("Sorry, I couldn't read that");
+    }
   }
 
   /// Long Press: Repeat last message
@@ -305,4 +311,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         return "Tap anywhere to interact";
     }
   }
+
+  // ==================== OUTPUT API SERVICES ====================
+
+  // OCR (OUTPUT) After capturing image containing texts
+  Future<void> _processImage(String path) async {
+    final inputImage = InputImage.fromFilePath(path);
+    final textRecognizer = TextRecognizer();
+
+    try {
+      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+
+      // Returns if no text is found
+      String extractedText = recognizedText.text.trim();
+
+      if (extractedText.isEmpty) {
+        await _audio.speak("No text detected in view.");
+      } else {
+        // Success feedback
+        _haptics.success();
+        print("OCR Result: $extractedText");
+
+        // Speak the detected text
+        await _audio.speak("The text says: $extractedText");
+      }
+    } catch (e) {
+      print("ML Kit Error: $e");
+      await _audio.speak("Failed to process the image.");
+    } finally {
+      textRecognizer.close();
+
+      // Delete cache images that was captured
+      try {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+          print("Temporary file deleted: $path");
+        }
+      } catch (e) {
+        print("Error deleting temporary file: $e");
+      }
+      setState(() => _statusMessage = "Ready");
+    }
+  }
+
 }

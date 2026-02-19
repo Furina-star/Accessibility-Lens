@@ -3,20 +3,10 @@ import 'package:google_mlkit_genai_image_description/google_mlkit_genai_image_de
 import 'package:google_mlkit_genai_prompt/google_mlkit_genai_prompt.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import '../services/tts_service.dart'; // Changed from audio_feedback_manager
+import '../services/haptic_service.dart';
 
 // IDK hahaahah
-
-// Text Recognition Dummy Test to read text via Picture
-// Can be implemented to use after Camera capture/scan
-/*
-Future<void> _processImage() async {
-  final inputImage = InputImage.fromFilePath(path);
-  final textRecognizer = TextRecognizer();
-  final RecognizedText recognizedText =
-      await textRecognizer.processImage(InputImage);
-  String extractedText = recognizedText.text;
-  print (extractedText);
-}*/
 
 // Object Detection Dummy Test to detect one or more multiple objects via live Camera
 /*
