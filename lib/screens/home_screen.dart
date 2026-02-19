@@ -178,27 +178,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return SemanticCameraView(
       statusMessage: _getCameraStatusMessage(),
       child: SizedBox.expand(
-        child: CameraPreview(controller),
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: controller.value.previewSize!.height,
+            height: controller.value.previewSize!.width,
+            child: CameraPreview(controller),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildStatusIndicator() {
     // Visual indicator for developers and sighted helpers
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Positioned(
-      bottom: 40,
+      bottom: 0,
       left: 0,
       right: 0,
       child: ExcludeSemantics(
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+          padding: EdgeInsets.only(
+              bottom: bottomPadding + 20,
+              top: 30,
+              left: 30,
+              right: 30
+          ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
                 Colors.transparent,
-                Colors.black.withValues(alpha: 0.7), // Fixed deprecation
+                Colors.black.withValues(alpha: 0.8), // Fixed deprecation
               ],
             ),
           ),
@@ -215,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.w500,
                 ),
               ),
