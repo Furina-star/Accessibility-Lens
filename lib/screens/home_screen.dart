@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await Future.delayed(Duration(seconds: 3));
 
     // Simulated result
-    String description = "Nigger standing in front.";
+    String description = "Nigger standing infront.";
 
     _haptics.stop();
     _haptics.success();
