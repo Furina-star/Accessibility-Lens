@@ -1,30 +1,58 @@
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:google_mlkit_genai_prompt/google_mlkit_genai_prompt.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
-import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 
-// IDK hahaahah
-class TextRecognitionService {
-  late TextRecognizer _textRecognizer;
-
-  TextRecognitionService() {
-    // Initialize with default Latin script
-    _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+/// GEMINI AI Model
+GenerativeModel _createGeminiModel(String systemInstruction) {
+  final apiKey = dotenv.env['GEMINI_API_KEY'];
+  if (apiKey == null || apiKey.trim().isEmpty) {
+    throw Exception('API Key not found in .env file!');
   }
 
-  /// Processes the image and returns the recognized text string
+  return GenerativeModel(
+    model: 'gemini-2.5-flash',
+    apiKey: apiKey,
+    systemInstruction: Content.system(systemInstruction),
+    safetySettings: [
+      SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
+      SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
+      SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
+      SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
+    ],
+  );
+}
+
+/// OCR Detection
+class TextRecognitionService {
+  final TextRecognizer _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  late final GenerativeModel _geminiModel;
+
+  TextRecognitionService() {
+    _geminiModel = _createGeminiModel("""
+      You are a helpful assistant reading text aloud for a visually impaired user. 
+      Process all text for a Text-to-Speech audio engine using these strict rules:
+      1. Context First: Start with a single, short sentence explaining what you are looking at.
+      2. Clean and Logical: Read the main content clearly. Fix obvious OCR typos silently. Read tables left-to-right, top-to-bottom.
+      3. No Formatting Symbols: DO NOT use Markdown formatting. No asterisks, hashtags, underscores, or bullets. Use commas and periods only.
+      4. Skip the Garbage: Ignore random gibberish characters or meaningless numbers.
+      5. Be Concise: Do not add conversational filler. Just start reading.
+    """);
+  }
+
   Future<String> processImage(String path) async {
     final inputImage = InputImage.fromFilePath(path);
+    final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+    final String rawText = recognizedText.text.trim();
 
-    try {
-      final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
-      return recognizedText.text.trim();
-    } catch (e) {
-      print("OCR Service Error: $e");
-      return "";
-    }
+    if (rawText.isEmpty) return "";
+
+    // The API request
+    final response = await _geminiModel.generateContent([
+      Content.text("Here is the raw text to read:\n$rawText")
+    ]);
+
+    return response.text?.trim() ?? "";
   }
 
   void dispose() {
@@ -32,41 +60,34 @@ class TextRecognitionService {
   }
 }
 
-// Object Detection Dummy Test to detect one or more multiple objects via live Camera
+/// Scene Detection
 class SceneDescriptionService {
-  final String _apiKey = "AIzaSyAuBk1Hu76CtsE0k_on7q6RwIEwChjkWfU";
-  late GenerativeModel _model;
+  late final GenerativeModel _geminiModel;
 
   SceneDescriptionService() {
-    _model = GenerativeModel(
-      model: 'gemini-2.5-flash-lite',
-      apiKey: _apiKey,
-    );
+    _geminiModel = _createGeminiModel("""
+      You are a helpful assistant acting as the eyes for a visually impaired user. 
+      Analyze images and describe the scene specifically for a Text-to-Speech audio engine.
+      Follow these strict rules:
+      1. The Big Picture: Start with a single sentence summarizing the environment.
+      2. Spatial Layout: Describe main objects and where they are relative to the user (e.g., "directly in front of you").
+      3. Hazard Warning: Explicitly call out potential obstacles, tripping hazards, or drop-offs.
+      4. Audio-Friendly: DO NOT use Markdown formatting, lists, or bullets. Use only commas and periods.
+      5. Keep it Concise: Keep the entire description under 4 sentences.
+    """);
   }
 
   Future<String> describeScene(String path) async {
-    try {
-      final file = File(path);
-      final imageBytes = await file.readAsBytes();
+    final file = File(path);
+    final imageBytes = await file.readAsBytes();
 
-      final prompt = TextPart(
-          "Describe this image briefly for someone who is blind. "
-              "Focus on the most important objects and their relative positions. "
-              "Keep it under 3 sentences."
-      );
+    final response = await _geminiModel.generateContent([
+      Content.multi([
+        TextPart("Describe this scene for me."),
+        DataPart('image/jpeg', imageBytes)
+      ])
+    ]);
 
-      final imagePart = DataPart('image/jpeg', imageBytes);
-
-      final response = await _model.generateContent([
-        Content.multi([prompt, imagePart])
-      ]);
-
-      return response.text ?? "I see a scene but cannot describe it.";
-    } catch (e) {
-      print("FULL GEMINI ERROR: $e"); // Check your Debug Console for this!
-      return "Connection error: $e";
-    }
+    return response.text?.trim() ?? "I see a scene but cannot describe it right now.";
   }
 }
-
-// Genai Image Description and Prompt are Complicated
