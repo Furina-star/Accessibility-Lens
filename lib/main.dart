@@ -1,33 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
 import 'screens/home_screen.dart';
 import 'services/camera_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // We make main 'async' because we have to wait for the camera hardware to wake up
 Future<void> main() async {
-  // 1. Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
+  await dotenv.load(fileName: ".env");
+
   try {
-    // 2. Get the list of available cameras on the device
-    final cameras = await availableCameras();
-
-    // 3. Set up the camera in your Service so the UI can see it
-    if (cameras.isNotEmpty) {
-      CameraService().controller = CameraController(
-        cameras.first, // Usually the back camera
-        ResolutionPreset.high,
-        enableAudio: false, // Prevents feedback loops from the start
-      );
-
-      // Initialize the controller
-      await CameraService().controller!.initialize();
-
-      // Note: Camera monitoring is now started by CameraGuidanceService
-      // in HomeScreen's initState, not here
-    }
+    await CameraService().initializeCamera();
   } catch (e) {
     print("Camera initialization error: $e");
+    // Note: If the camera fails (e.g., user denied permissions), the app will still
+    // launch, but your HomeScreen's error handlers will catch the missing controller!
   }
 
   // 4. Run the actual App
