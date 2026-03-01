@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'haptic_service.dart';
+import 'dart:io';
 
 class CameraService {
   static final CameraService _instance = CameraService._internal();
@@ -28,7 +29,7 @@ class CameraService {
         backCamera,
         ResolutionPreset.high,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
+        imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
       );
 
       // Boot up the camera

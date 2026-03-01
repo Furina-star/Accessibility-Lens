@@ -21,9 +21,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final HapticService _haptics = HapticService();
   final SceneDescriptionService _sceneService = SceneDescriptionService();
   final TextRecognitionService _textService = TextRecognitionService();
+  //final BarcodeService _barcodeService = BarcodeService();
 
   String _statusMessage = "Ready";
   double _speechRate = 0.5;
+  /*
+  bool _isProcessing = false;
+  String _lastScannedBarcode = "";
+  DateTime? _lastScanTime;
+  */
+
 
   @override
   void initState() {
@@ -58,6 +65,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Stops the live stream to prevent camera crashes and save battery
+  void _stopContinuousScanner() {
+    final controller = _cameraService.controller;
+    if (controller != null && controller.value.isStreamingImages) {
+      controller.stopImageStream();
+    }
+  }
+
   Future<void> _initializeServices() async {
     // Start camera guidance
     if (_cameraService.controller != null &&
@@ -81,6 +96,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
+    if (controller.value.isStreamingImages) {
+      _stopContinuousScanner();
+    }
+
     setState(() => _statusMessage = "Analyzing scene...");
     await _audio.announceDescribingScene();
 
@@ -100,13 +119,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// OCR (INPUT) Double Tap: "Read the text"
   Future<void> _handleDoubleTap() async {
     final controller = _cameraService.controller;
 
     if (controller == null || !controller.value.isInitialized) {
       await _audio.speak("Camera not ready");
       return;
+    }
+
+    if (controller.value.isStreamingImages) {
+      _stopContinuousScanner();
     }
 
     setState(() => _statusMessage = "Reading text...");
@@ -120,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         await _audio.speak("No text detected in view.");
       } else {
         _haptics.success();
-        await _audio.speak("The text says: $extractedText");
+        await _audio.speak(extractedText);
       }
 
       final file = File(photo.path);
