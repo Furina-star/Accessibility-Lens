@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Visual overlay for status messages, alerts, and progress indicators
-/// Uses yellow and black theme for high contrast
-/// This is EXCLUDED from screen readers (for sighted helpers/testing only)
 class VisualOverlay extends StatelessWidget {
   final String? topMessage;
   final String? centerMessage;
@@ -26,22 +23,12 @@ class VisualOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ExcludeSemantics(
-      // Exclude from screen readers
       child: Stack(
         children: [
-          // Top bar with app name and settings
           if (topMessage != null || showSettings) _buildTopBar(),
-
-          // Center alert message (for warnings)
           if (alertMessage != null) _buildAlertMessage(),
-
-          // Progress indicator
           if (progressValue != null) _buildProgressIndicator(),
-
-          // Bottom status message
           if (bottomMessage != null) _buildBottomMessage(),
-
-          // Center message (for scene descriptions)
           if (centerMessage != null) _buildCenterMessage(),
         ],
       ),
@@ -54,8 +41,8 @@ class VisualOverlay extends StatelessWidget {
       left: 0,
       right: 0,
       child: Container(
-        padding: EdgeInsets.fromLTRB(20, 50, 20, 15),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.fromLTRB(20, 50, 20, 15),
+        decoration: const BoxDecoration(
           color: Colors.black,
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(20),
@@ -67,8 +54,8 @@ class VisualOverlay extends StatelessWidget {
           children: [
             Text(
               topMessage ?? 'ACCESSIBILITY LENS',
-              style: TextStyle(
-                color: Color(0xFFFFC107), // Yellow
+              style: const TextStyle(
+                color: Color(0xFFFFC107),
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
@@ -77,7 +64,7 @@ class VisualOverlay extends StatelessWidget {
             if (showSettings)
               GestureDetector(
                 onTap: onSettingsTap,
-                child: Icon(
+                child: const Icon(
                   Icons.settings,
                   color: Color(0xFFFFC107),
                   size: 28,
@@ -97,20 +84,20 @@ class VisualOverlay extends StatelessWidget {
       bottom: 0,
       child: Center(
         child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 30),
-          padding: EdgeInsets.symmetric(vertical: 25, horizontal: 30),
+          margin: const EdgeInsets.symmetric(horizontal: 30),
+          padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 30),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: Color(0xFFFFC107),
+              color: const Color(0xFFFFC107),
               width: 3,
             ),
           ),
           child: Text(
             alertMessage!,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Color(0xFFFFC107),
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -127,7 +114,7 @@ class VisualOverlay extends StatelessWidget {
       top: 120,
       right: 20,
       child: Container(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(10),
@@ -140,14 +127,14 @@ class VisualOverlay extends StatelessWidget {
               child: CircularProgressIndicator(
                 value: progressValue,
                 strokeWidth: 4,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC107)),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFC107)),
                 backgroundColor: Colors.grey[800],
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               '${(progressValue! * 100).toInt()}%',
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(0xFFFFC107),
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -165,20 +152,20 @@ class VisualOverlay extends StatelessWidget {
       left: 0,
       right: 0,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 30),
-        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 25),
+        margin: const EdgeInsets.symmetric(horizontal: 30),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(25),
           border: Border.all(
-            color: Color(0xFFFFC107).withValues(alpha: 0.5),
+            color: const Color(0xFFFFC107).withValues(alpha: 0.5),
             width: 1,
           ),
         ),
         child: Text(
           bottomMessage!,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: Color(0xFFFFC107),
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -194,20 +181,20 @@ class VisualOverlay extends StatelessWidget {
       left: 0,
       right: 0,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 30),
-        padding: EdgeInsets.all(20),
+        margin: const EdgeInsets.symmetric(horizontal: 30),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: Color(0xFFFFC107),
+            color: const Color(0xFFFFC107),
             width: 2,
           ),
         ),
         child: Text(
           centerMessage!,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: Color(0xFFFFC107),
             fontSize: 16,
             fontWeight: FontWeight.w500,

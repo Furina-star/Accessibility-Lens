@@ -2,8 +2,6 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:volume_controller/volume_controller.dart';
 import 'haptic_service.dart';
 
-/// Centralized Audio Feedback System
-/// Manages all Text-to-Speech and audio ducking to prevent conflicts
 class AudioFeedbackManager {
   static final AudioFeedbackManager _instance = AudioFeedbackManager._internal();
   factory AudioFeedbackManager() => _instance;
@@ -16,10 +14,8 @@ class AudioFeedbackManager {
 
   bool _isSpeaking = false;
   bool _isListening = false;
-  double _originalVolume = 0.7;
+  double _originalVolume = 1;
   String _lastSpokenMessage = "";
-
-  // ==================== INITIALIZATION ====================
 
   Future<void> _initializeTTS() async {
     await _tts.setLanguage("en-US");
@@ -27,7 +23,6 @@ class AudioFeedbackManager {
     await _tts.setVolume(1.0);
     await _tts.setPitch(1.0);
 
-    // Set up completion callback
     _tts.setCompletionHandler(() {
       _isSpeaking = false;
       if (!_isListening) {
@@ -35,7 +30,6 @@ class AudioFeedbackManager {
       }
     });
 
-    // Set up error callback
     _tts.setErrorHandler((msg) {
       _isSpeaking = false;
       _haptics.error();
@@ -43,20 +37,21 @@ class AudioFeedbackManager {
     });
   }
 
-  // ==================== AUDIO DUCKING ====================
+  Future<void> setSpeechRate(double rate) async {
+    // keep it sane
+    final clamped = rate.clamp(0.1, 0.9);
+    await _tts.setSpeechRate(clamped);
+  }
 
-  /// Lower system volume to prevent TTS feedback loop
   Future<void> _duckAudio() async {
     _originalVolume = await VolumeController.instance.getVolume();
     await VolumeController.instance.setVolume(0.1);
   }
 
-  /// Restore original volume
   Future<void> _restoreVolume() async {
     await VolumeController.instance.setVolume(_originalVolume);
   }
 
-  /// Mute app completely (for listening mode)
   Future<void> mute() async {
     _originalVolume = await VolumeController.instance.getVolume();
     await VolumeController.instance.setVolume(0.0);
@@ -64,9 +59,6 @@ class AudioFeedbackManager {
     _isSpeaking = false;
   }
 
-  // ==================== SPEAKING FUNCTIONS ====================
-
-  /// Speak with immediate acknowledgment
   Future<void> speak(String message, {bool withHaptic = true}) async {
     if (_isSpeaking) {
       await _tts.stop();
@@ -82,7 +74,6 @@ class AudioFeedbackManager {
     await _tts.speak(message);
   }
 
-  /// Speak with priority (interrupts current speech)
   Future<void> speakUrgent(String message) async {
     await _tts.stop();
     _haptics.heavyTap();
@@ -90,7 +81,6 @@ class AudioFeedbackManager {
     await _tts.speak(message);
   }
 
-  /// Repeat last spoken message
   Future<void> repeatLast() async {
     if (_lastSpokenMessage.isNotEmpty) {
       _haptics.lightTap();
@@ -100,11 +90,9 @@ class AudioFeedbackManager {
     }
   }
 
-  // ==================== PREDEFINED MESSAGES ====================
-
   Future<void> announceCapturingText() async {
     await speak("Capturing text");
-    _haptics.heartbeat(); // Processing indicator
+    _haptics.heartbeat();
   }
 
   Future<void> announceDescribingScene() async {
@@ -127,10 +115,8 @@ class AudioFeedbackManager {
     await speak("Error: $errorMessage");
   }
 
-  // ==================== CAMERA GUIDANCE MESSAGES ====================
-
   Future<void> announceCameraToDark() async {
-    _haptics.cameraToDark();
+    _haptics.cameraTooDark();
     await speakUrgent("It is too dark. Please turn on a light or move to a brighter area.");
   }
 
@@ -154,12 +140,10 @@ class AudioFeedbackManager {
     await speak("Text detected. Double tap to read.");
   }
 
-  // ==================== LISTENING MODE ====================
-
   Future<void> enterListeningMode() async {
     _isListening = true;
     await mute();
-    _haptics.listeningPulse(); // Heartbeat tells user "I'm listening"
+    _haptics.listeningPulse();
   }
 
   Future<void> exitListeningMode() async {
@@ -168,11 +152,8 @@ class AudioFeedbackManager {
     await _restoreVolume();
   }
 
-  // ==================== GESTURE ANNOUNCEMENTS ====================
-
   Future<void> announceSingleTap() async {
     _haptics.lightTap();
-    // Don't speak, just haptic feedback - the action will speak
   }
 
   Future<void> announceDoubleTap() async {
@@ -183,12 +164,13 @@ class AudioFeedbackManager {
     _haptics.heavyTap();
   }
 
-  // ==================== GETTERS ====================
-
   bool get isSpeaking => _isSpeaking;
   bool get isListening => _isListening;
 
-  // ==================== CLEANUP ====================
+  Future<void> stop() async {
+    await _tts.stop();
+    _isSpeaking = false;
+  }
 
   Future<void> dispose() async {
     await _tts.stop();

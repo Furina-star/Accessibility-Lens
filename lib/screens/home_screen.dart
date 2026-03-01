@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import '../services/camera_service.dart';
 import '../services/camera_guidance_service.dart';
-import '../services/tts_service.dart'; // Changed from audio_feedback_manager
+import '../services/tts_service.dart';
 import '../services/haptic_service.dart';
 import '../services/ml_kit_service.dart';
 import '../widgets/zone_gesture_detector.dart';
@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _guidance.stopMonitoring();
-    _audio.dispose();
+    _audio.stop(); // don't nuke the singleton, just stop speech
     _haptics.stop();
     super.dispose();
   }
@@ -45,34 +45,54 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final CameraController? cameraController = _cameraService.controller;
 
-    if (cameraController == null || !cameraController.value.isInitialized) {
-      return;
-    }
+    if (cameraController == null || !cameraController.value.isInitialized) return;
 
     if (state == AppLifecycleState.inactive) {
       _guidance.stopMonitoring();
     } else if (state == AppLifecycleState.resumed) {
-      if (_cameraService.controller != null) {
-        _guidance.startMonitoring(_cameraService.controller!);
-      }
+      _guidance.startMonitoring(cameraController);
     }
   }
 
   Future<void> _initializeServices() async {
-    // Start camera guidance
-    if (_cameraService.controller != null &&
-        _cameraService.controller!.value.isInitialized) {
-      _guidance.startMonitoring(_cameraService.controller!);
+    // camera should already be initialized in main, but if not, try anyway
+    if (_cameraService.controller == null ||
+        !_cameraService.controller!.value.isInitialized) {
+      await _cameraService.initializeCamera();
+    }
 
-      // Welcome message
-      await Future.delayed(Duration(milliseconds: 500));
-      await _audio.speak("Accessibility Lens ready. Single tap to describe scene. Double tap to read text. Long press to repeat.");
+    final controller = _cameraService.controller;
+    if (controller != null && controller.value.isInitialized) {
+      _guidance.startMonitoring(controller);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      await _audio.speak(
+        "Accessibility Lens ready. Single tap to describe scene. Double tap to read text. Long press to repeat.",
+      );
+    } else {
+      await _audio.speak("Camera not ready");
     }
   }
 
-  // ==================== GESTURE HANDLERS ====================
+  Future<T> _withStreamPaused<T>(Future<T> Function() action) async {
+    // taking photos while streaming is flaky on some phones, so just pause guidance
+    final controller = _cameraService.controller;
+    final wasMonitoring = _guidance.isMonitoring;
 
-  /// Single Tap: "What is this?" (Scene Description)
+    if (wasMonitoring) {
+      _guidance.stopMonitoring();
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+
+    try {
+      return await action();
+    } finally {
+      if (wasMonitoring && controller != null && controller.value.isInitialized) {
+        _guidance.startMonitoring(controller);
+      }
+    }
+  }
+
   Future<void> _handleSingleTap() async {
     final controller = _cameraService.controller;
 
@@ -85,13 +105,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _audio.announceDescribingScene();
 
     try {
-      final XFile photo = await controller.takePicture();
-      String description = await _sceneService.describeScene(photo.path);
-      _haptics.success();
-      await _audio.speak(description);
+      await _withStreamPaused(() async {
+        final XFile photo = await controller.takePicture();
+        final String description = await _sceneService.describeScene(photo.path);
 
-      await File(photo.path).delete();
+        _haptics.success();
+        await _audio.speak(description);
 
+        final file = File(photo.path);
+        if (await file.exists()) await file.delete();
+      });
     } catch (e) {
       print("Single Tap Error: $e");
       await _audio.speak("Failed to analyze the scene.");
@@ -100,7 +123,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// OCR (INPUT) Double Tap: "Read the text"
   Future<void> _handleDoubleTap() async {
     final controller = _cameraService.controller;
 
@@ -113,21 +135,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _audio.announceCapturingText();
 
     try {
-      final XFile photo = await controller.takePicture();
-      String extractedText = await _textService.processImage(photo.path);
+      await _withStreamPaused(() async {
+        final XFile photo = await controller.takePicture();
+        final String extractedText = await _textService.processImage(photo.path);
 
-      if (extractedText.isEmpty) {
-        await _audio.speak("No text detected in view.");
-      } else {
-        _haptics.success();
-        await _audio.speak("The text says: $extractedText");
-      }
+        if (extractedText.isEmpty) {
+          await _audio.speak("No text detected in view.");
+        } else {
+          _haptics.success();
+          await _audio.speak("The text says: $extractedText");
+        }
 
-      final file = File(photo.path);
-      if (await file.exists()) {
-        await file.delete();
-      }
-
+        final file = File(photo.path);
+        if (await file.exists()) await file.delete();
+      });
     } catch (e) {
       print("Double Tap Error: $e");
       await _audio.speak("Failed to process the image.");
@@ -136,28 +157,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Long Press: Repeat last message
   Future<void> _handleLongPress() async {
     await _audio.repeatLast();
   }
 
-  /// Swipe Up: Increase speech rate
   Future<void> _handleSwipeUp() async {
     setState(() {
       _speechRate = (_speechRate + 0.1).clamp(0.1, 0.9);
     });
-    await _audio.speak("Speech rate increased to ${(_speechRate * 10).round()}");
+    await _audio.setSpeechRate(_speechRate);
+    await _audio.speak("Speech rate ${(_speechRate * 10).round()}");
   }
 
-  /// Swipe Down: Decrease speech rate
   Future<void> _handleSwipeDown() async {
     setState(() {
       _speechRate = (_speechRate - 0.1).clamp(0.1, 0.9);
     });
-    await _audio.speak("Speech rate decreased to ${(_speechRate * 10).round()}");
+    await _audio.setSpeechRate(_speechRate);
+    await _audio.speak("Speech rate ${(_speechRate * 10).round()}");
   }
-
-  // ==================== BUILD ====================
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +183,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       backgroundColor: Colors.black,
       body: SemanticGestureZone(
         label: "Camera interface",
-        hint: "Single tap to describe scene, double tap to read text, long press to repeat, swipe up or down to adjust speed",
+        hint:
+        "Single tap to describe scene, double tap to read text, long press to repeat, swipe up or down to adjust speed",
         child: ZoneGestureDetector(
           onSingleTap: _handleSingleTap,
           onDoubleTap: _handleDoubleTap,
@@ -174,13 +193,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onSwipeDown: _handleSwipeDown,
           child: Stack(
             children: [
-              // Camera Preview
               _buildCameraPreview(),
-
-              // Status Indicator (for sighted helpers/developers)
               _buildStatusIndicator(),
-
-              // Live region for screen reader announcements
               Positioned(
                 top: 0,
                 left: 0,
@@ -197,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final controller = _cameraService.controller;
 
     if (controller == null || !controller.value.isInitialized) {
-      return SemanticCameraView(
+      return const SemanticCameraView(
         statusMessage: "Initializing camera",
         child: Center(
           child: CircularProgressIndicator(color: Colors.white),
@@ -221,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildStatusIndicator() {
-    // Visual indicator for developers and sighted helpers
+    // just a dev overlay, nothing interactive
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Positioned(
@@ -231,10 +245,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       child: ExcludeSemantics(
         child: Container(
           padding: EdgeInsets.only(
-              bottom: bottomPadding + 20,
-              top: 30,
-              left: 30,
-              right: 30
+            bottom: bottomPadding + 20,
+            top: 30,
+            left: 30,
+            right: 30,
           ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -242,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               end: Alignment.bottomCenter,
               colors: [
                 Colors.transparent,
-                Colors.black.withValues(alpha: 0.8), // Fixed deprecation
+                Colors.black.withValues(alpha: 0.8),
               ],
             ),
           ),
@@ -253,21 +267,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 color: _getStatusColor(),
                 size: 32,
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Text(
                 _statusMessage,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 _getCameraQualityMessage(),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
                 ),
@@ -326,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     switch (_guidance.currentState) {
       case CameraQualityState.lensBlocked:
-        return "Please uncover the camera lens";
+        return "Uncover the camera lens";
       case CameraQualityState.toDark:
         return "Move to a brighter area";
       case CameraQualityState.good:
@@ -335,5 +349,4 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         return "Tap anywhere to interact";
     }
   }
-
 }

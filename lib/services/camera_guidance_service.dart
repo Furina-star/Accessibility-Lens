@@ -1,9 +1,7 @@
 import 'package:camera/camera.dart';
-import 'tts_service.dart'; // Uses your existing file name
+import 'tts_service.dart';
 import 'haptic_service.dart';
 
-/// Camera Feedback System
-/// Provides real-time guidance to help blind users position the camera correctly
 class CameraGuidanceService {
   static final CameraGuidanceService _instance = CameraGuidanceService._internal();
   factory CameraGuidanceService() => _instance;
@@ -15,7 +13,6 @@ class CameraGuidanceService {
   CameraController? _controller;
   bool _isMonitoring = false;
 
-  // Thresholds for guidance
   static const double VERY_DARK_THRESHOLD = 15.0;
   static const double LOW_LIGHT_THRESHOLD = 45.0;
   static const double GOOD_LIGHT_THRESHOLD = 80.0;
@@ -24,15 +21,12 @@ class CameraGuidanceService {
   DateTime? _lastAnnouncementTime;
   static const Duration ANNOUNCEMENT_COOLDOWN = Duration(seconds: 3);
 
-  // ==================== MONITORING ====================
-
   void startMonitoring(CameraController controller) {
     _controller = controller;
     _isMonitoring = true;
 
     _controller?.startImageStream((CameraImage image) {
       if (!_isMonitoring) return;
-
       _analyzeImage(image);
     });
   }
@@ -44,14 +38,11 @@ class CameraGuidanceService {
   }
 
   void _analyzeImage(CameraImage image) {
-    // Calculate average brightness
     final bytes = image.planes[0].bytes;
     double avgBrightness = bytes.reduce((a, b) => a + b) / bytes.length;
 
-    // Determine camera quality state
     CameraQualityState newState = _determineState(avgBrightness);
 
-    // Only announce if state changed and cooldown has passed
     if (newState != _lastState) {
       if (_shouldAnnounce()) {
         _announceState(newState);
@@ -60,7 +51,6 @@ class CameraGuidanceService {
       _lastState = newState;
     }
 
-    // Update haptic feedback continuously
     _updateHapticFeedback(newState);
   }
 
@@ -93,7 +83,6 @@ class CameraGuidanceService {
         _audio.announceGoodLighting();
         break;
       case CameraQualityState.acceptable:
-      // Don't announce - just provide haptic feedback
         _haptics.stop();
         break;
       case CameraQualityState.unknown:
@@ -104,14 +93,10 @@ class CameraGuidanceService {
   void _updateHapticFeedback(CameraQualityState state) {
     switch (state) {
       case CameraQualityState.lensBlocked:
-        if (!_haptics.isVibrating) {
-          _haptics.lensBlockedAlert();
-        }
+        if (!_haptics.isVibrating) _haptics.lensBlockedAlert();
         break;
       case CameraQualityState.toDark:
-        if (!_haptics.isVibrating) {
-          _haptics.cameraToDark();
-        }
+        if (!_haptics.isVibrating) _haptics.cameraTooDark();
         break;
       case CameraQualityState.good:
       case CameraQualityState.acceptable:
@@ -121,8 +106,6 @@ class CameraGuidanceService {
         break;
     }
   }
-
-  // ==================== GETTERS ====================
 
   CameraQualityState get currentState => _lastState;
   bool get isMonitoring => _isMonitoring;
