@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _guidance.stopMonitoring();
-    _audio.stop(); // don't nuke the singleton, just stop speech
+    _audio.stop();
     _haptics.stop();
     super.dispose();
   }
@@ -55,9 +55,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _initializeServices() async {
-    // camera should already be initialized in main, but if not, try anyway
-    if (_cameraService.controller == null ||
-        !_cameraService.controller!.value.isInitialized) {
+    if (_cameraService.controller == null || !_cameraService.controller!.value.isInitialized) {
       await _cameraService.initializeCamera();
     }
 
@@ -75,7 +73,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<T> _withStreamPaused<T>(Future<T> Function() action) async {
-    // taking photos while streaming is flaky on some phones, so just pause guidance
     final controller = _cameraService.controller;
     final wasMonitoring = _guidance.isMonitoring;
 
@@ -177,6 +174,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _audio.speak("Speech rate ${(_speechRate * 10).round()}");
   }
 
+
+  // for disabling tts
+  Future<void> _handleSwipeLeft() async {
+    await _audio.disableTts();
+    setState(() => _statusMessage = "TTS off");
+  }
+
+  // for enabling tts
+  Future<void> _handleSwipeRight() async {
+    await _audio.enableTts();
+    setState(() => _statusMessage = "TTS on");
+    await _audio.speak("Speech on");
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -184,13 +195,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: SemanticGestureZone(
         label: "Camera interface",
         hint:
-        "Single tap to describe scene, double tap to read text, long press to repeat, swipe up or down to adjust speed",
+        "Single tap describe scene, double tap read text, long press repeat, swipe up or down change speed, swipe left speech off, swipe right speech on",
         child: ZoneGestureDetector(
           onSingleTap: _handleSingleTap,
           onDoubleTap: _handleDoubleTap,
           onLongPress: _handleLongPress,
           onSwipeUp: _handleSwipeUp,
           onSwipeDown: _handleSwipeDown,
+          onSwipeLeft: _handleSwipeLeft,
+          onSwipeRight: _handleSwipeRight,
           child: Stack(
             children: [
               _buildCameraPreview(),
@@ -235,7 +248,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildStatusIndicator() {
-    // just a dev overlay, nothing interactive
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Positioned(

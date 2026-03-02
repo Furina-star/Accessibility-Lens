@@ -5,6 +5,7 @@ import 'haptic_service.dart';
 class AudioFeedbackManager {
   static final AudioFeedbackManager _instance = AudioFeedbackManager._internal();
   factory AudioFeedbackManager() => _instance;
+
   AudioFeedbackManager._internal() {
     _initializeTTS();
   }
@@ -14,7 +15,12 @@ class AudioFeedbackManager {
 
   bool _isSpeaking = false;
   bool _isListening = false;
-  double _originalVolume = 1;
+
+  bool _ttsEnabled = true;
+
+  double _originalVolume = 1.0;
+  bool _isDucked = false;
+
   String _lastSpokenMessage = "";
 
   Future<void> _initializeTTS() async {
@@ -23,33 +29,65 @@ class AudioFeedbackManager {
     await _tts.setVolume(1.0);
     await _tts.setPitch(1.0);
 
-    _tts.setCompletionHandler(() {
+    _tts.setCompletionHandler(() async {
       _isSpeaking = false;
-      if (!_isListening) {
-        _restoreVolume();
-      }
+      if (!_isListening) await _restoreVolumeIfNeeded();
     });
 
-    _tts.setErrorHandler((msg) {
+    _tts.setCancelHandler(() async {
+      _isSpeaking = false;
+      if (!_isListening) await _restoreVolumeIfNeeded();
+    });
+
+    _tts.setErrorHandler((msg) async {
       _isSpeaking = false;
       _haptics.error();
       print("TTS Error: $msg");
+      if (!_isListening) await _restoreVolumeIfNeeded();
     });
   }
 
   Future<void> setSpeechRate(double rate) async {
-    // keep it sane
     final clamped = rate.clamp(0.1, 0.9);
     await _tts.setSpeechRate(clamped);
   }
 
-  Future<void> _duckAudio() async {
-    _originalVolume = await VolumeController.instance.getVolume();
-    await VolumeController.instance.setVolume(0.1);
+  bool get ttsEnabled => _ttsEnabled;
+
+  Future<void> enableTts() async {
+    _ttsEnabled = true;
+    _haptics.lightTap();
   }
 
-  Future<void> _restoreVolume() async {
+  Future<void> disableTts() async {
+    _ttsEnabled = false;
+    await stop();
+    _haptics.heavyTap();
+  }
+
+  Future<void> toggleTts() async {
+    if (_ttsEnabled) {
+      await disableTts();
+    } else {
+      await enableTts();
+    }
+  }
+
+  Future<void> _duckAudio() async {
+    if (_isDucked) return;
+
+    _originalVolume = await VolumeController.instance.getVolume();
+
+    final ducked = (_originalVolume * 0.2).clamp(0.05, 0.25);
+    await VolumeController.instance.setVolume(ducked);
+
+    _isDucked = true;
+  }
+
+  Future<void> _restoreVolumeIfNeeded() async {
+    if (!_isDucked) return;
     await VolumeController.instance.setVolume(_originalVolume);
+    _isDucked = false;
   }
 
   Future<void> mute() async {
@@ -57,9 +95,16 @@ class AudioFeedbackManager {
     await VolumeController.instance.setVolume(0.0);
     await _tts.stop();
     _isSpeaking = false;
+    _isDucked = false;
   }
 
   Future<void> speak(String message, {bool withHaptic = true}) async {
+    if (!_ttsEnabled) {
+      if (withHaptic) _haptics.lightTap();
+      _lastSpokenMessage = message;
+      return;
+    }
+
     if (_isSpeaking) {
       await _tts.stop();
     }
@@ -67,17 +112,24 @@ class AudioFeedbackManager {
     _lastSpokenMessage = message;
     _isSpeaking = true;
 
-    if (withHaptic) {
-      _haptics.mediumTap();
-    }
+    if (withHaptic) _haptics.mediumTap();
 
+    await _duckAudio();
     await _tts.speak(message);
   }
 
   Future<void> speakUrgent(String message) async {
+    if (!_ttsEnabled) {
+      _haptics.heavyTap();
+      _lastSpokenMessage = message;
+      return;
+    }
+
     await _tts.stop();
     _haptics.heavyTap();
     _isSpeaking = true;
+
+    await _duckAudio();
     await _tts.speak(message);
   }
 
@@ -149,20 +201,12 @@ class AudioFeedbackManager {
   Future<void> exitListeningMode() async {
     _isListening = false;
     _haptics.stop();
-    await _restoreVolume();
+    await _restoreVolumeIfNeeded();
   }
 
-  Future<void> announceSingleTap() async {
-    _haptics.lightTap();
-  }
-
-  Future<void> announceDoubleTap() async {
-    _haptics.mediumTap();
-  }
-
-  Future<void> announceLongPress() async {
-    _haptics.heavyTap();
-  }
+  Future<void> announceSingleTap() async => _haptics.lightTap();
+  Future<void> announceDoubleTap() async => _haptics.mediumTap();
+  Future<void> announceLongPress() async => _haptics.heavyTap();
 
   bool get isSpeaking => _isSpeaking;
   bool get isListening => _isListening;
@@ -170,11 +214,12 @@ class AudioFeedbackManager {
   Future<void> stop() async {
     await _tts.stop();
     _isSpeaking = false;
+    if (!_isListening) await _restoreVolumeIfNeeded();
   }
 
   Future<void> dispose() async {
-    await _tts.stop();
+    await stop();
     _haptics.stop();
-    await _restoreVolume();
+    await _restoreVolumeIfNeeded();
   }
 }

@@ -25,7 +25,8 @@ GenerativeModel _createGeminiModel(String systemInstruction) {
 
 /// OCR Detection
 class TextRecognitionService {
-  final TextRecognizer _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  final TextRecognizer _textRecognizer =
+  TextRecognizer(script: TextRecognitionScript.latin);
   late final GenerativeModel _geminiModel;
 
   TextRecognitionService() {
@@ -42,15 +43,16 @@ class TextRecognitionService {
 
   Future<String> processImage(String path) async {
     final inputImage = InputImage.fromFilePath(path);
-    final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+    final RecognizedText recognizedText =
+    await _textRecognizer.processImage(inputImage);
     final String rawText = recognizedText.text.trim();
 
     if (rawText.isEmpty) return "";
 
     // The API request
-    final response = await _geminiModel.generateContent([
-      Content.text("Here is the raw text to read:\n$rawText")
-    ]);
+    final response = await _geminiModel.generateContent(
+      [Content.text("Here is the raw text to read:\n$rawText")],
+    );
 
     return response.text?.trim() ?? "";
   }
@@ -84,7 +86,7 @@ class SceneDescriptionService {
     final response = await _geminiModel.generateContent([
       Content.multi([
         TextPart("Describe this scene for me."),
-        DataPart('image/jpeg', imageBytes)
+        DataPart('image/jpeg', imageBytes),
       ])
     ]);
 
