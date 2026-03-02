@@ -24,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   String _statusMessage = "Ready";
   double _speechRate = 0.5;
+  bool _busy = false;
 
   @override
   void initState() {
@@ -38,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _guidance.stopMonitoring();
     _audio.stop();
     _haptics.stop();
+    _textService.dispose();
     super.dispose();
   }
 
@@ -47,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (cameraController == null || !cameraController.value.isInitialized) return;
 
-    if (state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       _guidance.stopMonitoring();
     } else if (state == AppLifecycleState.resumed) {
       _guidance.startMonitoring(cameraController);
@@ -78,23 +80,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (wasMonitoring) {
       _guidance.stopMonitoring();
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future.delayed(const Duration(milliseconds: 80));
     }
 
     try {
       return await action();
     } finally {
-      if (wasMonitoring && controller != null && controller.value.isInitialized) {
+      if (wasMonitoring && controller != null && controller.value.isInitialized && mounted) {
         _guidance.startMonitoring(controller);
       }
     }
   }
 
   Future<void> _handleSingleTap() async {
+    if (_busy) return;
+    _busy = true;
+
     final controller = _cameraService.controller;
 
     if (controller == null || !controller.value.isInitialized) {
       await _audio.speak("Camera not ready");
+      _busy = false;
       return;
     }
 
@@ -113,18 +119,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (await file.exists()) await file.delete();
       });
     } catch (e) {
-      print("Single Tap Error: $e");
       await _audio.speak("Failed to analyze the scene.");
     } finally {
-      setState(() => _statusMessage = "Ready");
+      if (mounted) setState(() => _statusMessage = "Ready");
+      _busy = false;
     }
   }
 
   Future<void> _handleDoubleTap() async {
+    if (_busy) return;
+    _busy = true;
+
     final controller = _cameraService.controller;
 
     if (controller == null || !controller.value.isInitialized) {
       await _audio.speak("Camera not ready");
+      _busy = false;
       return;
     }
 
@@ -147,10 +157,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (await file.exists()) await file.delete();
       });
     } catch (e) {
-      print("Double Tap Error: $e");
       await _audio.speak("Failed to process the image.");
     } finally {
-      setState(() => _statusMessage = "Ready");
+      if (mounted) setState(() => _statusMessage = "Ready");
+      _busy = false;
     }
   }
 
@@ -174,14 +184,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _audio.speak("Speech rate ${(_speechRate * 10).round()}");
   }
 
-
-  // for disabling tts
   Future<void> _handleSwipeLeft() async {
     await _audio.disableTts();
     setState(() => _statusMessage = "TTS off");
   }
 
-  // for enabling tts
   Future<void> _handleSwipeRight() async {
     await _audio.enableTts();
     setState(() => _statusMessage = "TTS on");

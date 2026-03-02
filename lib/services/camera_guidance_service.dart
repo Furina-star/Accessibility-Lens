@@ -12,6 +12,7 @@ class CameraGuidanceService {
 
   CameraController? _controller;
   bool _isMonitoring = false;
+  bool _isStreamActive = false;
 
   static const double VERY_DARK_THRESHOLD = 15.0;
   static const double LOW_LIGHT_THRESHOLD = 45.0;
@@ -25,21 +26,49 @@ class CameraGuidanceService {
     _controller = controller;
     _isMonitoring = true;
 
-    _controller?.startImageStream((CameraImage image) {
-      if (!_isMonitoring) return;
-      _analyzeImage(image);
-    });
+    if (_isStreamActive) return;
+
+    try {
+      _controller?.startImageStream((CameraImage image) {
+        if (!_isMonitoring) return;
+        _analyzeImage(image);
+      });
+      _isStreamActive = true;
+    } catch (_) {
+      _isStreamActive = false;
+    }
   }
 
   void stopMonitoring() {
     _isMonitoring = false;
-    _controller?.stopImageStream();
+
+    final c = _controller;
+    if (c != null && _isStreamActive) {
+      try {
+        c.stopImageStream();
+      } catch (_) {}
+    }
+
+    _isStreamActive = false;
     _haptics.stop();
   }
 
   void _analyzeImage(CameraImage image) {
+    if (image.planes.isEmpty) return;
+
     final bytes = image.planes[0].bytes;
-    double avgBrightness = bytes.reduce((a, b) => a + b) / bytes.length;
+    if (bytes.isEmpty) return;
+
+    final int sampleStep = (bytes.length ~/ 5000).clamp(1, 1000);
+    int sum = 0;
+    int count = 0;
+
+    for (int i = 0; i < bytes.length; i += sampleStep) {
+      sum += bytes[i];
+      count++;
+    }
+
+    final double avgBrightness = sum / count;
 
     CameraQualityState newState = _determineState(avgBrightness);
 
@@ -100,7 +129,7 @@ class CameraGuidanceService {
         break;
       case CameraQualityState.good:
       case CameraQualityState.acceptable:
-        _haptics.stop();
+        if (_haptics.isVibrating) _haptics.stop();
         break;
       case CameraQualityState.unknown:
         break;
