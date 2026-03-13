@@ -7,8 +7,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
-  await CameraService().initializeCamera();
 
+  await CameraService().initializeCamera();
   runApp(const AccessibilityLensApp());
 }
 
