@@ -10,6 +10,8 @@ import '../widgets/semantic_widgets.dart';
 import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -119,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Double Tap: "What is this?" (Text Recognition)
   Future<void> _handleDoubleTap() async {
     final controller = _cameraService.controller;
 
@@ -139,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       String extractedText = await _textService.processImage(photo.path);
 
       if (extractedText.isEmpty) {
-        await _audio.speak("No text detected in view.");
+        await _audio.speak("No clear text detected. Try moving the camera or checking the lighting.");
       } else {
         _haptics.success();
         await _audio.speak(extractedText);

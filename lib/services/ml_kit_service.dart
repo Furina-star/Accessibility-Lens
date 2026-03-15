@@ -1,12 +1,8 @@
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
-import 'dart:ui';
-import 'package:flutter/foundation.dart';
-import 'package:camera/camera.dart';
 
 /// GEMINI AI Model
 GenerativeModel _createGeminiModel(String systemInstruction) {
@@ -42,6 +38,7 @@ class TextRecognitionService {
       3. No Formatting Symbols: DO NOT use Markdown formatting. No asterisks, hashtags, underscores, or bullets. Use commas and periods only.
       4. Skip the Garbage: Ignore random gibberish characters or meaningless numbers.
       5. Be Concise: Do not add conversational filler. Just start reading.
+      6. Read this menu/receipt item by item. For each item, state the name followed immediately by its price. Do not list all names then all prices.
     """);
   }
 
@@ -50,9 +47,10 @@ class TextRecognitionService {
     final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
     final String rawText = recognizedText.text.trim();
 
-    if (rawText.isEmpty) return "";
+    // FIX: If text is basically non-existent (less than 3 characters), 
+    // return empty so we don't call Gemini.
+    if (rawText.length < 3) return "";
 
-    // The API request
     final response = await _geminiModel.generateContent([
       Content.text("Here is the raw text to read:\n$rawText")
     ]);
@@ -74,6 +72,10 @@ class SceneDescriptionService {
     _geminiModel = _createGeminiModel("""
       You are a helpful assistant acting as the eyes for a visually impaired user. 
       Analyze images and describe the scene specifically for a Text-to-Speech audio engine.
+      "PRIORITY 1: Identify immediate tripping hazards or head-level obstacles (open cabinets, shoes, stairs). "
+      "PRIORITY 2: Describe the overall room and exits. "
+      "If the image is too blurry, too dark, or a close-up with no context, BE HONEST. "
+      "Say 'I am too close to an object to see it' or 'It is too dark' instead of guessing. "
       Follow these strict rules:
       1. The Big Picture: Start with a single sentence summarizing the environment.
       2. Spatial Layout: Describe main objects and where they are relative to the user (e.g., "directly in front of you").
@@ -108,7 +110,7 @@ class SceneDescriptionService {
 
       // If ML Kit finds things, format them into a hint string for Gemini
       if (labels.isNotEmpty) {
-        // Remove duplicate labels (e.g., if it sees three "chairs", just say "chair" once for the hint)
+        // Remove duplicate labels
         final uniqueLabels = labels.toSet().toList();
         mlKitHints = "There is the presence of: ${uniqueLabels.join(', ')}. ";
       }
