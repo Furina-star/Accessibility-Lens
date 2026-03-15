@@ -10,6 +10,8 @@ import '../widgets/semantic_widgets.dart';
 import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -126,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Double Tap: "What is this?" (Text Recognition)
   Future<void> _handleDoubleTap() async {
     if (_busy) return;
     _busy = true;
