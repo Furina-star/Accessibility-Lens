@@ -1,6 +1,5 @@
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 
@@ -66,7 +65,7 @@ class TextRecognitionService {
   }
 }
 
-/// Scene Detection
+/// --- Scene Detection ---
 class SceneDescriptionService {
   late final GenerativeModel _geminiModel;
 
@@ -94,7 +93,7 @@ class SceneDescriptionService {
     final response = await _geminiModel.generateContent([
       Content.multi([
         TextPart("Describe this scene for me."),
-        DataPart('image/jpeg', imageBytes),
+        DataPart('image/jpeg', imageBytes)
       ])
     ]);
 
