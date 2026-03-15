@@ -19,9 +19,18 @@ class AudioFeedbackManager {
   bool _ttsEnabled = true;
 
   double _originalVolume = 1.0;
-  bool _isDucked = false;
+  bool _hasCapturedOriginal = false;
+  bool _isAdjusted = false;
 
   String _lastSpokenMessage = "";
+
+  static const double _listeningVolumeFactor = 0.2; // volume down when user speaks
+  static const double _ttsVolumeBoostFactor = 1.0;  // volume up when TTS speaks
+  static const double _minListeningVolume = 0.05;
+  static const double _maxListeningVolume = 0.25;
+
+  static const double _minTtsVolume = 0.60;
+  static const double _maxTtsVolume = 1.00;
 
   Future<void> _initializeTTS() async {
     await _tts.setLanguage("en-US");
@@ -73,29 +82,50 @@ class AudioFeedbackManager {
     }
   }
 
-  Future<void> _duckAudio() async {
-    if (_isDucked) return;
-
+  Future<void> _captureOriginalVolumeIfNeeded() async {
+    if (_hasCapturedOriginal) return;
     _originalVolume = await VolumeController.instance.getVolume();
+    _hasCapturedOriginal = true;
+  }
 
-    final ducked = (_originalVolume * 0.2).clamp(0.05, 0.25);
-    await VolumeController.instance.setVolume(ducked);
+  Future<void> _setInputVolumeForListening() async {
+    await _captureOriginalVolumeIfNeeded();
 
-    _isDucked = true;
+    final lowered = (_originalVolume * _listeningVolumeFactor)
+        .clamp(_minListeningVolume, _maxListeningVolume);
+
+    await VolumeController.instance.setVolume(lowered);
+    _isAdjusted = true;
+  }
+
+  Future<void> _setOutputVolumeForTts() async {
+    await _captureOriginalVolumeIfNeeded();
+
+    // tts volume up after prompt
+    final boosted = (_originalVolume * _ttsVolumeBoostFactor)
+        .clamp(_minTtsVolume, _maxTtsVolume);
+
+    await VolumeController.instance.setVolume(boosted);
+    _isAdjusted = true;
   }
 
   Future<void> _restoreVolumeIfNeeded() async {
-    if (!_isDucked) return;
+    if (!_isAdjusted) return;
+    if (!_hasCapturedOriginal) return;
+
     await VolumeController.instance.setVolume(_originalVolume);
-    _isDucked = false;
+
+    _isAdjusted = false;
+    _hasCapturedOriginal = false;
   }
 
   Future<void> mute() async {
-    _originalVolume = await VolumeController.instance.getVolume();
+    await _captureOriginalVolumeIfNeeded();
     await VolumeController.instance.setVolume(0.0);
+    _isAdjusted = true;
+
     await _tts.stop();
     _isSpeaking = false;
-    _isDucked = false;
   }
 
   Future<void> speak(String message, {bool withHaptic = true}) async {
@@ -114,7 +144,7 @@ class AudioFeedbackManager {
 
     if (withHaptic) _haptics.mediumTap();
 
-    await _duckAudio();
+    await _setOutputVolumeForTts();
     await _tts.speak(message);
   }
 
@@ -129,7 +159,7 @@ class AudioFeedbackManager {
     _haptics.heavyTap();
     _isSpeaking = true;
 
-    await _duckAudio();
+    await _setOutputVolumeForTts();
     await _tts.speak(message);
   }
 
@@ -194,8 +224,10 @@ class AudioFeedbackManager {
 
   Future<void> enterListeningMode() async {
     _isListening = true;
-    await mute();
-    _haptics.listeningPulse();
+    await _tts.stop();
+    _isSpeaking = false;
+
+    await _setInputVolumeForListening();
   }
 
   Future<void> exitListeningMode() async {
