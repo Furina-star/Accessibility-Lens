@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/tts_service.dart'; // Changed from audio_feedback_manager
+import '../services/tts_service.dart';
 import '../services/haptic_service.dart';
 
-/// Zone-Based Gesture System
-/// Replaces buttons with intuitive, location-independent gestures
 class ZoneGestureDetector extends StatefulWidget {
   final Widget child;
   final VoidCallback? onSingleTap;
@@ -41,8 +39,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   Offset? _swipeStart;
   static const double SWIPE_THRESHOLD = 50.0;
 
-  // ==================== TAP HANDLING ====================
-
   void _handleTap() {
     final now = DateTime.now();
 
@@ -55,7 +51,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     _lastTapTime = now;
 
     if (_tapCount == 1) {
-      // Wait to see if it's a double tap
       Future.delayed(DOUBLE_TAP_WINDOW, () {
         if (_tapCount == 1 && widget.onSingleTap != null) {
           _audio.announceSingleTap();
@@ -77,8 +72,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     }
   }
 
-  // ==================== SWIPE HANDLING ====================
-
   void _handlePanStart(DragStartDetails details) {
     _swipeStart = details.globalPosition;
   }
@@ -88,16 +81,13 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
 
     final delta = details.velocity.pixelsPerSecond;
 
-    // Determine swipe direction based on velocity
     if (delta.dy.abs() > delta.dx.abs()) {
-      // Vertical swipe
       if (delta.dy > SWIPE_THRESHOLD) {
         _handleSwipeDown();
       } else if (delta.dy < -SWIPE_THRESHOLD) {
         _handleSwipeUp();
       }
     } else {
-      // Horizontal swipe
       if (delta.dx > SWIPE_THRESHOLD) {
         _handleSwipeRight();
       } else if (delta.dx < -SWIPE_THRESHOLD) {
@@ -135,8 +125,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
       widget.onSwipeRight!();
     }
   }
-
-  // ==================== BUILD ====================
 
   @override
   Widget build(BuildContext context) {

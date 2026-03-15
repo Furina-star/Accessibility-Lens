@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Semantic wrapper widgets for proper screen reader support
-/// Every interactive element MUST be wrapped in proper semantics
-
 class SemanticButton extends StatelessWidget {
   final String label;
   final String? hint;
@@ -50,7 +47,6 @@ class SemanticCameraView extends StatelessWidget {
       hint: statusMessage,
       image: true,
       child: ExcludeSemantics(
-        // Exclude the raw camera preview from semantics
         excluding: true,
         child: child,
       ),
@@ -103,7 +99,6 @@ class SemanticGestureZone extends StatelessWidget {
   }
 }
 
-/// Announces changes to screen reader without visual change
 class LiveRegionAnnouncer extends StatelessWidget {
   final String message;
   final Widget? child;

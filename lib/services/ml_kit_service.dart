@@ -26,7 +26,8 @@ GenerativeModel _createGeminiModel(String systemInstruction) {
 
 /// OCR Detection
 class TextRecognitionService {
-  final TextRecognizer _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  final TextRecognizer _textRecognizer =
+  TextRecognizer(script: TextRecognitionScript.latin);
   late final GenerativeModel _geminiModel;
 
   TextRecognitionService() {
@@ -44,16 +45,18 @@ class TextRecognitionService {
 
   Future<String> processImage(String path) async {
     final inputImage = InputImage.fromFilePath(path);
-    final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+    final RecognizedText recognizedText =
+    await _textRecognizer.processImage(inputImage);
     final String rawText = recognizedText.text.trim();
 
     // FIX: If text is basically non-existent (less than 3 characters), 
     // return empty so we don't call Gemini.
     if (rawText.length < 3) return "";
 
-    final response = await _geminiModel.generateContent([
-      Content.text("Here is the raw text to read:\n$rawText")
-    ]);
+    // The API request
+    final response = await _geminiModel.generateContent(
+      [Content.text("Here is the raw text to read:\n$rawText")],
+    );
 
     return response.text?.trim() ?? "";
   }
@@ -66,7 +69,6 @@ class TextRecognitionService {
 /// Scene Detection
 class SceneDescriptionService {
   late final GenerativeModel _geminiModel;
-  late final ObjectDetector _objectDetector;
 
   SceneDescriptionService() {
     _geminiModel = _createGeminiModel("""
@@ -83,133 +85,19 @@ class SceneDescriptionService {
       4. Audio-Friendly: DO NOT use Markdown formatting, lists, or bullets. Use only commas and periods.
       5. Keep it Concise: Keep the entire description under 4 sentences.
     """);
-
-    final options = ObjectDetectorOptions(
-      mode: DetectionMode.single,
-      classifyObjects: true,
-      multipleObjects: true,
-    );
-    _objectDetector = ObjectDetector(options: options);
   }
 
   Future<String> describeScene(String path) async {
     final file = File(path);
     final imageBytes = await file.readAsBytes();
-    final inputImage = InputImage.fromFilePath(path);
 
-    String mlKitHints = "";
-    try {
-      final List<DetectedObject> objects = await _objectDetector.processImage(inputImage);
+    final response = await _geminiModel.generateContent([
+      Content.multi([
+        TextPart("Describe this scene for me."),
+        DataPart('image/jpeg', imageBytes),
+      ])
+    ]);
 
-      List<String> labels = [];
-      for (final object in objects) {
-        for (final label in object.labels) {
-          labels.add(label.text);
-        }
-      }
-
-      // If ML Kit finds things, format them into a hint string for Gemini
-      if (labels.isNotEmpty) {
-        // Remove duplicate labels
-        final uniqueLabels = labels.toSet().toList();
-        mlKitHints = "There is the presence of: ${uniqueLabels.join(', ')}. ";
-      }
-    } catch (e) {
-      print("ML Kit Object Detection skipped/failed: $e");
-    }
-
-    final promptText = mlKitHints.isEmpty
-        ? "Describe this scene for me."
-        : "$mlKitHints Please describe the scene, paying special attention to where these objects are located relative to the camera, especially if they are hazards.";
-
-    try {
-      final response = await _geminiModel.generateContent([
-        Content.multi([
-          TextPart(promptText),
-          DataPart('image/jpeg', imageBytes)
-        ])
-      ]);
-
-      return response.text?.trim() ?? "I see a scene but cannot describe it right now.";
-    } catch (e) {
-      print("Gemini Scene Error: $e");
-      return "There was an issue processing the scene description.";
-    }
-  }
-
-  void dispose() {
-    _objectDetector.close();
+    return response.text?.trim() ?? "I see a scene but cannot describe it right now.";
   }
 }
-
-/*
-/// --- Barcode Detection ---
-class BarcodeService {
-  final BarcodeScanner _barcodeScanner = BarcodeScanner();
-
-  Future<String> scanImage(String path) async {
-    final inputImage = InputImage.fromFilePath(path);
-
-    try {
-      final List<Barcode> barcodes = await _barcodeScanner.processImage(inputImage);
-      if (barcodes.isEmpty) return "";
-
-      final String rawValue = barcodes.first.rawValue ?? "";
-      return rawValue.isEmpty ? "" : rawValue;
-    } catch (e) {
-      print("Static Barcode Scanner Error: $e");
-      return "";
-    }
-  }
-
-  Future<String> processLiveFrame(InputImage inputImage) async {
-    try {
-      final List<Barcode> barcodes = await _barcodeScanner.processImage(inputImage);
-      if (barcodes.isEmpty) return "";
-
-      final String rawValue = barcodes.first.rawValue ?? "";
-      return rawValue;
-    } catch (e) {
-      print("Live Barcode Scanner Error: $e");
-      return "";
-    }
-  }
-
-  void dispose() {
-    _barcodeScanner.close();
-  }
-}
-
-InputImage? convertCameraImageToInputImage(CameraImage image, CameraController controller) {
-  final sensorOrientation = controller.description.sensorOrientation;
-  InputImageRotation? rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
-  if (rotation == null) return null;
-
-  final format = InputImageFormatValue.fromRawValue(image.format.raw);
-  if (format == null ||
-      (Platform.isAndroid && format != InputImageFormat.nv21) ||
-      (Platform.isIOS && format != InputImageFormat.bgra8888)) {
-    return null;
-  }
-
-  if (image.planes.isEmpty) return null;
-  final WriteBuffer allBytes = WriteBuffer();
-  for (final Plane plane in image.planes) {
-    allBytes.putUint8List(plane.bytes);
-  }
-  final bytes = allBytes.done().buffer.asUint8List();
-
-  final Size imageSize = Size(image.width.toDouble(), image.height.toDouble());
-  final inputImageMetadata = InputImageMetadata(
-    size: imageSize,
-    rotation: rotation,
-    format: format,
-    bytesPerRow: image.planes[0].bytesPerRow,
-  );
-
-  return InputImage.fromBytes(
-    bytes: bytes,
-    metadata: inputImageMetadata,
-  );
-}
-*/
