@@ -101,7 +101,7 @@ class AudioFeedbackManager {
   Future<void> _setOutputVolumeForTts() async {
     await _captureOriginalVolumeIfNeeded();
 
-    // tts volume up after prompt
+    // tts volume up after magprompt
     final boosted = (_originalVolume * _ttsVolumeBoostFactor)
         .clamp(_minTtsVolume, _maxTtsVolume);
 
