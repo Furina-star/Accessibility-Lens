@@ -8,8 +8,8 @@ enum VoiceCommand {
   stop, // Stop the prompted message
   forceStop, // Force stop the app itself
   exit, // Exit the app
-  speedUp, // Adjust Speech rate to speed
-  slowDown, // Adjust Speech rate to slow
+  speedUp, // Speed up the speech rate
+  slowDown, // Slow down the speech rate  
   repeat, // Repeat the last prompted message
   help, // Provide a list of available voice commands
   unknown,
@@ -76,12 +76,8 @@ class VoiceCommandParser {
     }
 
     // Adjust Speech Rate
-    if (text.contains("adjust speech rate") ||
-        text.contains("speech rate") ||
-        text.contains("speed up") ||
-        text.contains("faster")) {
-      return VoiceCommand.speedUp;
-    }
+    if (text.contains("speed up") || text.contains("faster")) return VoiceCommand.speedUp;
+    if (text.contains("slow down") || text.contains("slower")) return VoiceCommand.slowDown;
 
     // Repeat Last Message
     if (text.contains("repeat") ||
@@ -120,29 +116,27 @@ class VoiceCommandService {
     return _available;
   }
 
-  Future<void> startListening({
-    required void Function(String recognizedWords) onWords,
+  Future<void> startHoldToTalk({
+    required void Function(String words, bool isFinal) onWords,
   }) async {
     if (!_available) return;
     if (_isListening) return;
 
     await _stt.listen(
-      listenOptions: stt.SpeechListenOptions(
-        listenMode: stt.ListenMode.confirmation,
-        partialResults: true,
-      ),
+      partialResults: true,
+      listenMode: stt.ListenMode.confirmation,
       onResult: (result) {
-        onWords(result.recognizedWords);
+        onWords(result.recognizedWords, result.finalResult);
       },
     );
   }
 
-  Future<void> stopListening() async {
+  Future<void> stopHoldToTalk() async {
     _isListening = false;
     await _stt.stop();
   }
 
-  Future<void> cancelListening() async {
+  Future<void> cancel() async {
     _isListening = false;
     await _stt.cancel();
   }
