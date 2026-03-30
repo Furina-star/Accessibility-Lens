@@ -7,6 +7,7 @@ import '../services/haptic_service.dart';
 import '../services/ml_kit_service.dart';
 import '../widgets/zone_gesture_detector.dart';
 import '../widgets/semantic_widgets.dart';
+import 'settings_screen.dart';
 import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
@@ -128,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Double Tap: "What is this?" (Text Recognition)
+  /// Double Tap: Text recognition
   Future<void> _handleDoubleTap() async {
     if (_busy) return;
     _busy = true;
@@ -198,10 +199,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _audio.speak("Speech on");
   }
 
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: const Color(0xFFFFC107),
+        title: const Text("Accessibility Lens"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _openSettings,
+            tooltip: "Settings",
+          ),
+        ],
+      ),
       body: SemanticGestureZone(
         label: "Camera interface",
         hint:
