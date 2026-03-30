@@ -5,9 +5,9 @@ import 'dart:io';
 
 /// GEMINI AI Model
 GenerativeModel _createGeminiModel(String systemInstruction) {
-  final apiKey = dotenv.env['GEMINI_API_KEY'];
+  final apiKey = dotenv.maybeGet('GEMINI_API_KEY');
   if (apiKey == null || apiKey.trim().isEmpty) {
-    throw Exception('API Key not found in .env file!');
+    throw Exception('GEMINI_API_KEY missing. Add it to .env (and list .env in pubspec assets).');
   }
 
   return GenerativeModel(
