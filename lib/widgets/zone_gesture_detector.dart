@@ -34,15 +34,15 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
 
   int _tapCount = 0;
   DateTime? _lastTapTime;
-  static const Duration DOUBLE_TAP_WINDOW = Duration(milliseconds: 300);
+  static const Duration doubleTapWindow = Duration(milliseconds: 300);
 
   Offset? _swipeStart;
-  static const double SWIPE_THRESHOLD = 50.0;
+  static const double swipeThreshold = 50.0;
 
   void _handleTap() {
     final now = DateTime.now();
 
-    if (_lastTapTime != null && now.difference(_lastTapTime!) < DOUBLE_TAP_WINDOW) {
+    if (_lastTapTime != null && now.difference(_lastTapTime!) < doubleTapWindow) {
       _tapCount++;
     } else {
       _tapCount = 1;
@@ -51,7 +51,7 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     _lastTapTime = now;
 
     if (_tapCount == 1) {
-      Future.delayed(DOUBLE_TAP_WINDOW, () {
+      Future.delayed(doubleTapWindow, () {
         if (_tapCount == 1 && widget.onSingleTap != null) {
           _audio.announceSingleTap();
           widget.onSingleTap!();
@@ -82,15 +82,15 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     final delta = details.velocity.pixelsPerSecond;
 
     if (delta.dy.abs() > delta.dx.abs()) {
-      if (delta.dy > SWIPE_THRESHOLD) {
+      if (delta.dy > swipeThreshold) {
         _handleSwipeDown();
-      } else if (delta.dy < -SWIPE_THRESHOLD) {
+      } else if (delta.dy < -swipeThreshold) {
         _handleSwipeUp();
       }
     } else {
-      if (delta.dx > SWIPE_THRESHOLD) {
+      if (delta.dx > swipeThreshold) {
         _handleSwipeRight();
-      } else if (delta.dx < -SWIPE_THRESHOLD) {
+      } else if (delta.dx < -swipeThreshold) {
         _handleSwipeLeft();
       }
     }

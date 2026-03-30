@@ -198,7 +198,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onChanged: onChanged,
       title: Text(title, style: const TextStyle(color: accent, fontWeight: FontWeight.w600)),
       subtitle: Text(subtitle, style: const TextStyle(color: textDim)),
-      activeColor: accent,
+      activeThumbColor: accent,
       inactiveThumbColor: Colors.grey,
       inactiveTrackColor: Colors.grey.shade800,
     );

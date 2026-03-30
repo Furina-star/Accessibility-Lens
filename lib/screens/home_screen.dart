@@ -14,10 +14,10 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final CameraService _cameraService = CameraService();
   final CameraGuidanceService _guidance = CameraGuidanceService();
   final AudioFeedbackManager _audio = AudioFeedbackManager();
