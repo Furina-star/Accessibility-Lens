@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 enum VoiceCommand {
@@ -142,4 +140,3 @@ class VoiceCommandService {
     _stt.cancel();
   }
 }
->>>>>>> Stashed changes
