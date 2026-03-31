@@ -6,16 +6,9 @@ import 'services/camera_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  Future<void> main() async {
-    WidgetsFlutterBinding.ensureInitialized();
-
-    await dotenv.load(fileName: ".env");
-
-    await CameraService().initializeCamera();
-    runApp(const AccessibilityLensApp());
-  }
-
+  await dotenv.load(fileName: ".env");
   await CameraService().initializeCamera();
+
   runApp(const AccessibilityLensApp());
 }
 

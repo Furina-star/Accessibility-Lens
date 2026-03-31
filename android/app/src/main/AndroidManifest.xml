@@ -8,7 +8,7 @@
     <uses-feature android:name="android.hardware.microphone" android:required="true"/>
 
     <application
-        android:label="Accessibility Lens"
+        android:label="Access Lens"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
