@@ -6,18 +6,26 @@ class ZoneGestureDetector extends StatefulWidget {
   final Widget child;
   final VoidCallback? onSingleTap;
   final VoidCallback? onDoubleTap;
-  final VoidCallback? onLongPress;
+
+  // For Voice Command
+  final VoidCallback? onLongPressStart;
+  final VoidCallback? onLongPressEnd;
+  final VoidCallback? onLongPressCancel;
+  
   final VoidCallback? onSwipeUp;
   final VoidCallback? onSwipeDown;
   final VoidCallback? onSwipeLeft;
   final VoidCallback? onSwipeRight;
+
 
   const ZoneGestureDetector({
     super.key,
     required this.child,
     this.onSingleTap,
     this.onDoubleTap,
-    this.onLongPress,
+    this.onLongPressStart,
+    this.onLongPressEnd,
+    this.onLongPressCancel,
     this.onSwipeUp,
     this.onSwipeDown,
     this.onSwipeLeft,
@@ -65,11 +73,19 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     }
   }
 
-  void _handleLongPress() {
-    if (widget.onLongPress != null) {
-      _audio.announceLongPress();
-      widget.onLongPress!();
-    }
+  void _handleLongPressStart(LongPressStartDetails details) {
+    _haptics.lightTap();
+    widget.onLongPressStart?.call();
+  }
+
+  void _handleLongPressEnd(LongPressEndDetails details) {
+    _haptics.lightTap();
+    widget.onLongPressEnd?.call();
+  }
+
+  void _handleLongPressCancel() {
+    _haptics.lightTap();
+    widget.onLongPressCancel?.call();
   }
 
   void _handlePanStart(DragStartDetails details) {
@@ -129,10 +145,14 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _handleTap,
-      onLongPress: _handleLongPress,
+      onTap: _handleTap,      
       onPanStart: _handlePanStart,
       onPanEnd: _handlePanEnd,
+
+      // Return null for long press callbacks if they are not provided to avoid unnecessary gesture recognition
+      onLongPressStart: widget.onLongPressStart != null ? _handleLongPressStart : null,
+      onLongPressEnd: widget.onLongPressEnd != null ? _handleLongPressEnd : null,
+      onLongPressCancel: widget.onLongPressCancel != null ? _handleLongPressCancel : null,
       behavior: HitTestBehavior.opaque,
       child: widget.child,
     );

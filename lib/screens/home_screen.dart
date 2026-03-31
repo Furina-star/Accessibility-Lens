@@ -1,3 +1,8 @@
+<<<<<<< Updated upstream
+=======
+import 'dart:async';
+
+>>>>>>> Stashed changes
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import '../services/camera_service.dart';
@@ -24,10 +29,21 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final HapticService _haptics = HapticService();
   final SceneDescriptionService _sceneService = SceneDescriptionService();
   final TextRecognitionService _textService = TextRecognitionService();
+<<<<<<< Updated upstream
 
+=======
+  final VoiceCommandService _voice = VoiceCommandService();
+  final Map<VoiceCommand, DateTime> _lastCommandTime = {};
+
+  String _lastHeard = "";
+>>>>>>> Stashed changes
   String _statusMessage = "Ready";
   double _speechRate = 0.5;
   bool _busy = false;
+
+  void _markExecuted(VoiceCommand cmd) {
+    _lastCommandTime[cmd] = DateTime.now();
+  }
 
   @override
   void initState() {
@@ -43,6 +59,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _audio.stop();
     _haptics.stop();
     _textService.dispose();
+    _voice.dispose();
     super.dispose();
   }
 
@@ -168,10 +185,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _handleLongPress() async {
-    await _audio.repeatLast();
-  }
-
   Future<void> _handleSwipeUp() async {
     setState(() {
       _speechRate = (_speechRate + 0.1).clamp(0.1, 0.9);
@@ -199,12 +212,169 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _audio.speak("Speech on");
   }
 
+<<<<<<< Updated upstream
   void _openSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
   }
 
+=======
+  // Voice Command Cooldown Management
+  static const Duration _defaultCooldown = Duration(milliseconds: 900);
+  static const Map<VoiceCommand, Duration> _commandCooldowns = {
+    VoiceCommand.captureScene: Duration(milliseconds: 1500),
+    VoiceCommand.captureText: Duration(milliseconds: 1500),
+
+    // allow stopping quickly
+    VoiceCommand.stop: Duration(milliseconds: 250),
+
+    // avoid accidental repeats / spam
+    VoiceCommand.repeat: Duration(milliseconds: 700),
+    VoiceCommand.help: Duration(seconds: 2),
+
+    // volume changes can be rapid but not too spammy
+    VoiceCommand.volumeUp: Duration(milliseconds: 350),
+    VoiceCommand.volumeDown: Duration(milliseconds: 350),
+
+    // speech rate changes
+    VoiceCommand.speedUp: Duration(milliseconds: 450),
+    VoiceCommand.slowDown: Duration(milliseconds: 450),
+
+    // “dangerous” commands: slow them down a lot
+    VoiceCommand.exit: Duration(seconds: 3),
+    VoiceCommand.forceStop: Duration(seconds: 3),
+  };
+
+  // Voice Command Parsing Logic
+  bool _isOnCooldown(VoiceCommand cmd) {
+    final last = _lastCommandTime[cmd];
+    if (last == null) return false;
+
+    final cooldown = _commandCooldowns[cmd] ?? _defaultCooldown;
+    return DateTime.now().difference(last) < cooldown;
+  }
+
+  // Voice Command Execution
+  Future<void> _startHoldToTalk() async {
+    if (_busy) return;
+    if (_voice.isListening) return;
+
+    setState(() => _statusMessage = "Listening...");
+
+    await _audio.enterListeningMode();
+
+    await _voice.startHoldToTalk(onWords: (words, isFinal) {
+      _lastHeard = words;
+      if (isFinal) {
+        Future.microtask(() => _executeVoiceCommand(words));
+      }
+    });
+  }
+
+  Future<void> _stopHoldToTalk() async {
+    if (_voice.isListening) {
+      await _voice.stopHoldToTalk();
+    }
+
+    await _audio.exitListeningMode();
+
+    if (mounted) setState(() => _statusMessage = "Ready");
+  }
+
+  // Voice Command Handling
+  Future<void> _executeVoiceCommand(String words) async {
+    final cmd = VoiceCommandParser.parse(words);
+
+    if (cmd == VoiceCommand.unknown) return;
+
+    // Silent cooldown ignore
+    if (_isOnCooldown(cmd)) return;
+    _markExecuted(cmd);
+
+    switch (cmd) {
+      // Capture Scene
+      case VoiceCommand.captureScene:
+        await _audio.stop(); // Stop any ongoing speech
+        await _handleSingleTap();
+        break;
+
+      // Capture Text
+      case VoiceCommand.captureText:
+        await _audio.stop();
+        await _handleDoubleTap();
+        break;
+
+      // Volume Up
+      case VoiceCommand.volumeUp:
+        final v = await VolumeController.instance.getVolume();
+        await VolumeController.instance.setVolume((v + 0.1).clamp(0.0, 1.0));
+        await _audio.speak("Volume up");
+        break;
+
+      // Volume Down
+      case VoiceCommand.volumeDown:
+        final v = await VolumeController.instance.getVolume();
+        await VolumeController.instance.setVolume((v - 0.1).clamp(0.0, 1.0));
+        await _audio.speak("Volume down");
+        break;
+
+      // Stop
+      case VoiceCommand.stop:
+        await _audio.stop();
+        break;
+
+      // Repeat
+      case VoiceCommand.repeat:
+        await _audio.repeatLast();
+        break;
+
+      // Adjust Speech Rate
+      case VoiceCommand.speedUp:
+        await _handleSwipeUp();
+        break;
+
+      case VoiceCommand.slowDown:
+        await _handleSwipeDown();
+        break;
+
+      // Help
+      case VoiceCommand.help:
+        await _audio.speak(
+          "Commands: Capture scene, Capture text, Volume up, Volume down, Stop, Force stop, Exit, Repeat, and Help.",
+        );
+        break;
+
+      // Exit
+      case VoiceCommand.exit:
+        // iOS generally discourages programmatic exit)
+        await _audio.stop();
+        await _audio.speak("Exiting");
+        await Future.delayed(const Duration(milliseconds: 300));
+        SystemNavigator.pop();
+        break;
+
+      // Force Stop: a safe approach is to stop speech, stop camera stream, and re-init services
+      case VoiceCommand.forceStop:
+        await _audio.stop();
+        _guidance.stopMonitoring();
+        _cameraService.dispose();
+        await _audio.speak("Resetting");
+        await Future.delayed(const Duration(milliseconds: 200));
+        await _cameraService.initializeCamera();
+        final controller = _cameraService.controller;
+        if (controller != null && controller.value.isInitialized) {
+          _guidance.startMonitoring(controller);
+        }
+        break;
+
+      case VoiceCommand.unknown:
+        // Ignore unknowns to avoid noisy feedback
+        break;
+    }
+  }
+
+>>>>>>> Stashed changes
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -228,7 +398,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: ZoneGestureDetector(
           onSingleTap: _handleSingleTap,
           onDoubleTap: _handleDoubleTap,
-          onLongPress: _handleLongPress,
+          onLongPressStart: _startHoldToTalk,
+          onLongPressEnd: _stopHoldToTalk,
+          onLongPressCancel: _stopHoldToTalk,
           onSwipeUp: _handleSwipeUp,
           onSwipeDown: _handleSwipeDown,
           onSwipeLeft: _handleSwipeLeft,
