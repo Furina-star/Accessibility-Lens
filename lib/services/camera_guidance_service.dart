@@ -14,13 +14,13 @@ class CameraGuidanceService {
   bool _isMonitoring = false;
   bool _isStreamActive = false;
 
-  static const double VERY_DARK_THRESHOLD = 15.0;
-  static const double LOW_LIGHT_THRESHOLD = 45.0;
-  static const double GOOD_LIGHT_THRESHOLD = 80.0;
+  static const double veryDarkThreshold = 15.0;
+  static const double lowLightThreshold = 45.0;
+  static const double goodLightThreshold = 80.0;
 
   CameraQualityState _lastState = CameraQualityState.unknown;
   DateTime? _lastAnnouncementTime;
-  static const Duration ANNOUNCEMENT_COOLDOWN = Duration(seconds: 3);
+  static const Duration announcementCoolDown = Duration(seconds: 3);
 
   void startMonitoring(CameraController controller) {
     _controller = controller;
@@ -84,11 +84,11 @@ class CameraGuidanceService {
   }
 
   CameraQualityState _determineState(double brightness) {
-    if (brightness < VERY_DARK_THRESHOLD) {
+    if (brightness < veryDarkThreshold) {
       return CameraQualityState.lensBlocked;
-    } else if (brightness < LOW_LIGHT_THRESHOLD) {
+    } else if (brightness < lowLightThreshold) {
       return CameraQualityState.toDark;
-    } else if (brightness >= GOOD_LIGHT_THRESHOLD) {
+    } else if (brightness >= goodLightThreshold) {
       return CameraQualityState.good;
     } else {
       return CameraQualityState.acceptable;
@@ -97,7 +97,7 @@ class CameraGuidanceService {
 
   bool _shouldAnnounce() {
     if (_lastAnnouncementTime == null) return true;
-    return DateTime.now().difference(_lastAnnouncementTime!) > ANNOUNCEMENT_COOLDOWN;
+    return DateTime.now().difference(_lastAnnouncementTime!) > announcementCoolDown;
   }
 
   void _announceState(CameraQualityState state) {
