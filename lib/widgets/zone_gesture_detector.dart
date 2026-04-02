@@ -7,15 +7,18 @@ class ZoneGestureDetector extends StatefulWidget {
   final VoidCallback? onSingleTap;
   final VoidCallback? onDoubleTap;
 
-  // For Voice Command
+  // voice command
   final VoidCallback? onLongPressStart;
   final VoidCallback? onLongPressEnd;
   final VoidCallback? onLongPressCancel;
-  
+
   final VoidCallback? onSwipeUp;
   final VoidCallback? onSwipeDown;
   final VoidCallback? onSwipeLeft;
   final VoidCallback? onSwipeRight;
+
+  // force stop tts
+  final VoidCallback? onTwoFingerDoubleTap;
 
 
   const ZoneGestureDetector({
@@ -30,6 +33,7 @@ class ZoneGestureDetector extends StatefulWidget {
     this.onSwipeDown,
     this.onSwipeLeft,
     this.onSwipeRight,
+    this.onTwoFingerDoubleTap,
   });
 
   @override
@@ -46,6 +50,8 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
 
   Offset? _swipeStart;
   static const double swipeThreshold = 50.0;
+
+  int _activePointers = 0;
 
   void _handleTap() {
     final now = DateTime.now();
@@ -142,19 +148,36 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     }
   }
 
+  void _handleDoubleTap() {
+    // 2+ fingers down as panic/silence.
+    if (_activePointers >= 2 && widget.onTwoFingerDoubleTap != null) {
+      _haptics.heavyTap();
+      widget.onTwoFingerDoubleTap!.call();
+      return;
+    }
+
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _handleTap,      
-      onPanStart: _handlePanStart,
-      onPanEnd: _handlePanEnd,
+    return Listener(
+      onPointerDown: (_) => _activePointers++,
+      onPointerUp: (_) => _activePointers = (_activePointers - 1).clamp(0, 10),
+      onPointerCancel: (_) => _activePointers = 0,
+      child: GestureDetector(
+        onTap: _handleTap,
+        onDoubleTap: _handleDoubleTap,
+        onPanStart: _handlePanStart,
+        onPanEnd: _handlePanEnd,
 
-      // Return null for long press callbacks if they are not provided to avoid unnecessary gesture recognition
-      onLongPressStart: widget.onLongPressStart != null ? _handleLongPressStart : null,
-      onLongPressEnd: widget.onLongPressEnd != null ? _handleLongPressEnd : null,
-      onLongPressCancel: widget.onLongPressCancel != null ? _handleLongPressCancel : null,
-      behavior: HitTestBehavior.opaque,
-      child: widget.child,
+
+        onLongPressStart: widget.onLongPressStart != null ? _handleLongPressStart : null,
+        onLongPressEnd: widget.onLongPressEnd != null ? _handleLongPressEnd : null,
+        onLongPressCancel: widget.onLongPressCancel != null ? _handleLongPressCancel : null,
+
+        behavior: HitTestBehavior.opaque,
+        child: widget.child,
+      ),
     );
   }
 }

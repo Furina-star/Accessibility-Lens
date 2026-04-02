@@ -61,6 +61,44 @@ class AudioFeedbackManager {
     await _tts.setSpeechRate(clamped);
   }
 
+  Future<List<Map<String, String>>> getAvailableVoices() async {
+    final voices = await _tts.getVoices;
+    final list = <Map<String, String>>[];
+
+    for (final v in voices) {
+      if (v is Map) {
+        final name = v['name']?.toString();
+        final locale = v['locale']?.toString();
+        if (name != null && locale != null) {
+          list.add({'name': name, 'locale': locale});
+        }
+      }
+    }
+
+    list.sort((a, b) {
+      final la = a['locale'] ?? '';
+      final lb = b['locale'] ?? '';
+      final na = a['name'] ?? '';
+      final nb = b['name'] ?? '';
+      final c = la.compareTo(lb);
+      return c != 0 ? c : na.compareTo(nb);
+    });
+
+    return list;
+  }
+
+  Future<void> setVoiceByNameAndLocale({
+    required String name,
+    required String locale,
+  }) async {
+    await _tts.setVoice({'name': name, 'locale': locale});
+  }
+
+  Future<void> setPitch(double pitch) async {
+    final clamped = pitch.clamp(0.5, 2.0);
+    await _tts.setPitch(clamped);
+  }
+
   bool get ttsEnabled => _ttsEnabled;
 
   Future<void> enableTts() async {

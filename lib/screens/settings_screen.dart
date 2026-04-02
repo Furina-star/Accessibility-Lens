@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/tts_service.dart';
 import '../services/haptic_service.dart';
 import '../services/camera_guidance_service.dart';
+import 'voice_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -33,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _ttsEnabled = _audio.ttsEnabled;
+    _hapticsEnabled = _haptics.enabled; // <-- add this line
     _guidanceEnabled = _guidance.isMonitoring;
   }
 
@@ -46,11 +48,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _setHapticsEnabled(bool v) async {
+  Future<void> _setHapticsEnabled(bool v) async {
     setState(() => _hapticsEnabled = v);
-    if (!v) {
-      _haptics.stop();
-    } else {
+    _haptics.enabled = v;
+
+    if (v) {
       _haptics.lightTap();
     }
   }
@@ -75,9 +77,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _setPitch(double v) async {
     setState(() => _pitch = v);
-
-
-    await _audio.speak("Pitch updated");
+    await _audio.setPitch(v);
+    await _audio.speak("Pitch ${_pitch.toStringAsFixed(1)}");
   }
 
   @override
@@ -104,8 +105,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: _voiceLabel,
             trailing: const Icon(Icons.chevron_right, color: accent),
             onTap: () async {
-              // Placeholder until you expose actual installed voices
-              setState(() => _voiceLabel = _voiceLabel == "Default" ? "Alt voice" : "Default");
+              final selected = await Navigator.of(context).push<Map<String, String>>(
+                MaterialPageRoute(
+                  builder: (_) => VoiceSettingsScreen(initialSelectionLabel: _voiceLabel),
+                ),
+              );
+
+              if (selected == null) return;
+
+              final name = selected['name'] ?? '';
+              final locale = selected['locale'] ?? '';
+              setState(() => _voiceLabel = "$locale - $name");
+
               await _audio.speak("Voice changed");
             },
           ),

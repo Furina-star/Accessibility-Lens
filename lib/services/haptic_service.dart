@@ -5,15 +5,30 @@ class HapticService {
   factory HapticService() => _instance;
   HapticService._internal();
 
+  bool _enabled = true;
+  bool get enabled => _enabled;
+
+  set enabled(bool v) {
+    _enabled = v;
+    if (!v) stop();
+  }
+
   bool _isVibrating = false;
 
+  bool get isVibrating => _isVibrating;
+
+  bool _guard() => _enabled;
+
+
   void success() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(duration: 100, amplitude: 255);
     Future.delayed(const Duration(milliseconds: 100), () => _isVibrating = false);
   }
 
   void error() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(
       pattern: [0, 150, 100, 150, 100, 150],
@@ -23,6 +38,7 @@ class HapticService {
   }
 
   void heartbeat() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(
       pattern: [0, 100, 800],
@@ -31,6 +47,7 @@ class HapticService {
   }
 
   void textDetected() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(
       pattern: [0, 50, 100, 50],
@@ -40,6 +57,7 @@ class HapticService {
   }
 
   void cameraTooDark() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(
       pattern: [0, 500, 500],
@@ -49,6 +67,7 @@ class HapticService {
   }
 
   void cameraBlurry() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(
       pattern: [0, 200, 200, 200, 200],
@@ -58,6 +77,7 @@ class HapticService {
   }
 
   void lensBlockedAlert() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(
       pattern: [0, 500, 100, 500, 100, 500],
@@ -67,6 +87,7 @@ class HapticService {
   }
 
   void lowLightWarning() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(
       pattern: [0, 300, 700],
@@ -76,6 +97,7 @@ class HapticService {
   }
 
   void listeningPulse() {
+    if (!_guard()) return;
     _isVibrating = true;
     Vibration.vibrate(
       pattern: [0, 100, 150, 100, 600],
@@ -84,15 +106,24 @@ class HapticService {
   }
 
   void lightTap() {
+    if (!_guard()) return;
+    _isVibrating = true;
     Vibration.vibrate(duration: 30, amplitude: 128);
+    Future.delayed(const Duration(milliseconds: 30), () => _isVibrating = false);
   }
 
   void mediumTap() {
+    if (!_guard()) return;
+    _isVibrating = true;
     Vibration.vibrate(duration: 50, amplitude: 180);
+    Future.delayed(const Duration(milliseconds: 50), () => _isVibrating = false);
   }
 
   void heavyTap() {
+    if (!_guard()) return;
+    _isVibrating = true;
     Vibration.vibrate(duration: 100, amplitude: 255);
+    Future.delayed(const Duration(milliseconds: 100), () => _isVibrating = false);
   }
 
   void stop() {
@@ -100,5 +131,4 @@ class HapticService {
     Vibration.cancel();
   }
 
-  bool get isVibrating => _isVibrating;
 }

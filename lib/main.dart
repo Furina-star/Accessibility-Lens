@@ -23,6 +23,7 @@ class AccessibilityLensApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.blue,
+        fontFamily: 'Poppins',
       ),
       home: HomeScreen(),
     );
