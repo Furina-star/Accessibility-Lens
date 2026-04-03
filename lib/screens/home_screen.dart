@@ -92,7 +92,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       await Future.delayed(const Duration(milliseconds: 500));
       await _audio.speak(
-        "Accessibility Lens ready. Single tap to describe scene. Double tap to read text. Long press to repeat, Hold the microphone to speak a command, say Help for a list of commands.",
+        "Accessibility Lens ready. Single tap to describe scene. Double tap to read text, Triple tap to repeat last message, Hold the microphone to speak a command, say Help for a list of commands.",
       );
       await _voice.init();
     } else {
@@ -448,7 +448,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: SemanticGestureZone(
         label: "Camera interface",
         hint:
-            "Single tap describe scene, double tap read text, triple tap repeat, long press repeat, swipe up or down change speed, swipe left speech off, swipe right speech on, hold the microphone to speak a command, say help for a list of commands.",
+            "Single tap describe scene, double tap read text, triple tap repeat, swipe up or down change speed, swipe left speech off, swipe right speech on, hold the microphone to speak a command, say help for a list of commands.",
         child: ZoneGestureDetector(
           onTwoFingerDoubleTap: _panicSilence,
           onSingleTap: _handleSingleTap,

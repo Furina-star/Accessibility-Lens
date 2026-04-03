@@ -160,7 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const Icon(Icons.play_arrow, color: accent),
             onTap: () async {
               await _audio.speak(
-                "Single tap to describe scene. Double tap to read text. Long press to repeat. Swipe up or down changes speed. Swipe left turns speech off. Swipe right turns speech on.",
+                "Single tap to describe scene. Double tap to read text, Triple tap to repeat last message, Hold the microphone to speak a command. Swipe up or down changes speed. Swipe left turns speech off. Swipe right turns speech on.",
               );
             },
           ),
