@@ -32,7 +32,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   final VoiceCommandService _voice = VoiceCommandService();
 
-  // For holding the last recognized voice command to allow repeating it if needed
+  // holding the last recognized voice command to allow repeating it if needed
   String _lastHeard = "";
   Timer? _holdTimer;
 
@@ -204,6 +204,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) setState(() => _statusMessage = "Ready");
       _busy = false;
     }
+  }
+
+  Future<void> _handleTripleTap() async {
+    await _audio.repeatLast();
+    if (mounted) setState(() => _statusMessage = "Repeated last message");
   }
 
   Future<void> _handleSwipeUp() async {
@@ -393,14 +398,13 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       // Exit
       case VoiceCommand.exit:
-        // iOS generally discourages programmatic exit)
         await _audio.stop();
         await _audio.speak("Exiting");
         await Future.delayed(const Duration(milliseconds: 300));
         SystemNavigator.pop();
         break;
 
-      // Force Stop: a safe approach is to stop speech, stop camera stream, and re-init services
+      // force stop: stop speech, stop camera stream, and re-init services
       case VoiceCommand.forceStop:
         await _audio.stop();
         _guidance.stopMonitoring();
@@ -415,7 +419,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         break;
 
       case VoiceCommand.unknown:
-        // Ignore unknowns to avoid noisy feedback
+        // ignore unknowns to avoid noisy feedback
         break;
     }
   }
@@ -444,11 +448,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: SemanticGestureZone(
         label: "Camera interface",
         hint:
-            "Single tap describe scene, double tap read text, long press repeat, swipe up or down change speed, swipe left speech off, swipe right speech on, hold the microphone to speak a command, say help for a list of commands.",
+            "Single tap describe scene, double tap read text, triple tap repeat, long press repeat, swipe up or down change speed, swipe left speech off, swipe right speech on, hold the microphone to speak a command, say help for a list of commands.",
         child: ZoneGestureDetector(
           onTwoFingerDoubleTap: _panicSilence,
           onSingleTap: _handleSingleTap,
           onDoubleTap: _handleDoubleTap,
+          onTripleTap: _handleTripleTap,
           onLongPressStart: _startHoldToTalk,
           onLongPressEnd: _stopHoldToTalk,
           onLongPressCancel: _stopHoldToTalk,

@@ -6,6 +6,7 @@ class ZoneGestureDetector extends StatefulWidget {
   final Widget child;
   final VoidCallback? onSingleTap;
   final VoidCallback? onDoubleTap;
+  final VoidCallback? onTripleTap;
 
   // voice command
   final VoidCallback? onLongPressStart;
@@ -26,6 +27,7 @@ class ZoneGestureDetector extends StatefulWidget {
     required this.child,
     this.onSingleTap,
     this.onDoubleTap,
+    this.onTripleTap,
     this.onLongPressStart,
     this.onLongPressEnd,
     this.onLongPressCancel,
@@ -64,19 +66,19 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
 
     _lastTapTime = now;
 
-    if (_tapCount == 1) {
-      Future.delayed(doubleTapWindow, () {
-        if (_tapCount == 1 && widget.onSingleTap != null) {
-          _audio.announceSingleTap();
-          widget.onSingleTap!();
-        }
-        _tapCount = 0;
-      });
-    } else if (_tapCount == 2 && widget.onDoubleTap != null) {
-      _audio.announceDoubleTap();
-      widget.onDoubleTap!();
+    Future.delayed(doubleTapWindow, () {
+      if (_tapCount == 1 && widget.onSingleTap != null) {
+        _audio.announceSingleTap();
+        widget.onSingleTap!();
+      } else if (_tapCount == 2 && widget.onDoubleTap != null) {
+        _audio.announceDoubleTap();
+        widget.onDoubleTap!();
+      } else if (_tapCount == 3 && widget.onTripleTap != null) {
+        _haptics.mediumTap();
+        widget.onTripleTap!();
+      }
       _tapCount = 0;
-    }
+    });
   }
 
   void _handleLongPressStart(LongPressStartDetails details) {
