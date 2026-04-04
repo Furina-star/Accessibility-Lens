@@ -238,39 +238,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _audio.speak("Speech on");
   }
 
-  // Voice Command Execution
-  Future<void> _onHoldToTalkStart() async {
-    if (_busy) return;
-    if (_voice.isListening) return;
-
-    setState(() => _statusMessage = "Listening...");
-
-    await _audio.enterListeningMode();
-
-    await _voice.startHoldToTalk(
-      onWords: (words, isFinal) {
-        _lastHeard = words;
-
-        if (isFinal) {
-          Future.microtask(() => _executeVoiceCommand(words));
-        }
-      },
-    );
-  }
-
-  Future<void> _onHoldToTalkEnd() async {
-        if (!_voice.isListening){
-          await _audio.exitListeningMode();
-          if (mounted) setState(() => _statusMessage = "Ready");
-          return;
-    }
-
-    await _voice.stopHoldToTalk();
-    await _audio.exitListeningMode();
-
-    if (mounted) setState(() => _statusMessage = "Ready");
-  }
-
   // Voice Command Cooldown Management
   static const Duration _defaultCooldown = Duration(milliseconds: 900);
   static const Map<VoiceCommand, Duration> _commandCooldowns = {
