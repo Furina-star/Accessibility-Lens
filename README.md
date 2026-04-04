@@ -1,29 +1,29 @@
 # Accessibility Lens
 
-A camera app that narrates the world for visually impaired users. Point it at an object and it speaks out loud (example: “A red coffee mug on a wooden table.”). It can also read text like street signs or medicine labels.
+Accessibility Lens is a Flutter mobile app designed to assist visually impaired users by using the camera, speech output (TTS), haptics, and voice commands to describe scenes and read text.
 
-## Features
-- Camera-based narration
-- Text reading (OCR)
-- Audio feedback
+## Key features
+- Scene description (single tap)
+- Text reading (double tap)
+- Voice commands (long press / hold to talk)
+- Camera guidance alerts (lens blocked / too dark) using haptics + announcements
+- Adjustable speech rate and pitch
+- Voice selection (voice + locale picker)
 
-## Tech
-- Flutter (Dart)
-- Android (`android/`)
-- iOS (`ios/`)
+## Quick start (developer)
+1. Install Flutter and set up Android Studio/Xcode.
+2. Create a `.env` file at the project root with:
 
-## Permissions (Android)
-Declared in `android/app/src/main/AndroidManifest.xml`:
-- Camera
-- Microphone
-- Internet
-- Vibrate
+   `GEMINI_API_KEY=your_key_here`
 
-## Run
-```bash
-flutter pub get
-flutter run
-```
+3. Ensure `.env` is included as an asset in `pubspec.yaml` (see Developer Guide).
+4. Run:
+   ```bash
+   flutter pub get
+   flutter run
+   ```
 
-## Notes
-- iOS launch images: `ios/Runner/Assets.xcassets/LaunchImage.imageset/`
+## Documentation
+- How to use the app: `docs/USER_GUIDE.md`
+- Developer setup: `docs/DEVELOPER_GUIDE.md`
+- Privacy policy: `docs/PRIVACY_POLICY.md`
