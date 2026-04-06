@@ -1,6 +1,7 @@
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:volume_controller/volume_controller.dart';
 import 'haptic_service.dart';
+import 'dart:async';
 
 class AudioFeedbackManager {
   static final AudioFeedbackManager _instance = AudioFeedbackManager._internal();
@@ -24,6 +25,8 @@ class AudioFeedbackManager {
 
   String _lastSpokenMessage = "";
 
+  Completer<void>? _speakCompleter;
+
   static const double _listeningVolumeFactor = 0.2; // volume down when user speaks
   static const double _ttsVolumeBoostFactor = 1.0;  // volume up when TTS speaks
   static const double _minListeningVolume = 0.05;
@@ -41,18 +44,24 @@ class AudioFeedbackManager {
     _tts.setCompletionHandler(() async {
       _isSpeaking = false;
       if (!_isListening) await _restoreVolumeIfNeeded();
+      _speakCompleter?.complete();
+      _speakCompleter = null;
     });
-
+ 
     _tts.setCancelHandler(() async {
       _isSpeaking = false;
       if (!_isListening) await _restoreVolumeIfNeeded();
+      _speakCompleter?.complete();
+      _speakCompleter = null;
     });
-
+ 
     _tts.setErrorHandler((msg) async {
       _isSpeaking = false;
       _haptics.error();
       print("TTS Error: $msg");
       if (!_isListening) await _restoreVolumeIfNeeded();
+      _speakCompleter?.complete();
+      _speakCompleter = null;
     });
   }
 
@@ -186,17 +195,38 @@ class AudioFeedbackManager {
     await _tts.speak(message);
   }
 
+  Future<void> speakAndWait(String message, {bool withHaptic = true}) async {
+    if (!_ttsEnabled) {
+      if (withHaptic) _haptics.lightTap();
+      _lastSpokenMessage = message;
+      return;
+    }
+ 
+    if (_isSpeaking) await _tts.stop();
+ 
+    _lastSpokenMessage = message;
+    _isSpeaking = true;
+    if (withHaptic) _haptics.mediumTap();
+ 
+    _speakCompleter = Completer<void>();
+ 
+    await _setOutputVolumeForTts();
+    await _tts.speak(message);
+ 
+    await _speakCompleter!.future;
+  }
+ 
   Future<void> speakUrgent(String message) async {
     if (!_ttsEnabled) {
       _haptics.heavyTap();
       _lastSpokenMessage = message;
       return;
     }
-
+ 
     await _tts.stop();
     _haptics.heavyTap();
     _isSpeaking = true;
-
+ 
     await _setOutputVolumeForTts();
     await _tts.speak(message);
   }

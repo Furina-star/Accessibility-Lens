@@ -21,7 +21,6 @@ class ZoneGestureDetector extends StatefulWidget {
   // force stop tts
   final VoidCallback? onTwoFingerDoubleTap;
 
-
   const ZoneGestureDetector({
     super.key,
     required this.child,
@@ -46,16 +45,27 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   final AudioFeedbackManager _audio = AudioFeedbackManager();
   final HapticService _haptics = HapticService();
 
+  // --- Single / Double / Triple tap ---
   int _tapCount = 0;
   DateTime? _lastTapTime;
   static const Duration doubleTapWindow = Duration(milliseconds: 300);
 
+  // --- Swipe ---
   Offset? _swipeStart;
   static const double swipeThreshold = 50.0;
 
+  // --- Two-finger double tap ---
   int _activePointers = 0;
+  int _twoFingerTapCount = 0;
+  DateTime? _lastTwoFingerTapTime;
+  static const Duration twoFingerDoubleTapWindow = Duration(milliseconds: 400);
+
+  // ─── Tap handling ────────────────────────────────────────────────────────────
 
   void _handleTap() {
+    // Ignore taps that are part of a two-finger gesture
+    if (_activePointers >= 2) return;
+
     final now = DateTime.now();
 
     if (_lastTapTime != null && now.difference(_lastTapTime!) < doubleTapWindow) {
@@ -73,13 +83,50 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
       } else if (_tapCount == 2 && widget.onDoubleTap != null) {
         _audio.announceDoubleTap();
         widget.onDoubleTap!();
-      } else if (_tapCount == 3 && widget.onTripleTap != null) {
+      } else if (_tapCount >= 3 && widget.onTripleTap != null) {
         _haptics.mediumTap();
         widget.onTripleTap!();
       }
       _tapCount = 0;
     });
   }
+
+  // ─── Two-finger double tap (via Listener) ────────────────────────────────────
+
+  void _onPointerDown(PointerDownEvent event) {
+    _activePointers++;
+
+    // Only track two-finger taps
+    if (_activePointers != 2) return;
+
+    final now = DateTime.now();
+
+    if (_lastTwoFingerTapTime != null &&
+        now.difference(_lastTwoFingerTapTime!) < twoFingerDoubleTapWindow) {
+      _twoFingerTapCount++;
+    } else {
+      _twoFingerTapCount = 1;
+    }
+
+    _lastTwoFingerTapTime = now;
+
+    if (_twoFingerTapCount >= 2 && widget.onTwoFingerDoubleTap != null) {
+      _twoFingerTapCount = 0;
+      _haptics.heavyTap();
+      widget.onTwoFingerDoubleTap!.call();
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    _activePointers = (_activePointers - 1).clamp(0, 10);
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _activePointers = 0;
+    _twoFingerTapCount = 0;
+  }
+
+  // ─── Long press ──────────────────────────────────────────────────────────────
 
   void _handleLongPressStart(LongPressStartDetails details) {
     _haptics.lightTap();
@@ -95,6 +142,8 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     _haptics.lightTap();
     widget.onLongPressCancel?.call();
   }
+
+  // ─── Swipe ───────────────────────────────────────────────────────────────────
 
   void _handlePanStart(DragStartDetails details) {
     _swipeStart = details.globalPosition;
@@ -150,33 +199,24 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     }
   }
 
-  void _handleDoubleTap() {
-    // 2+ fingers down as panic/silence.
-    if (_activePointers >= 2 && widget.onTwoFingerDoubleTap != null) {
-      _haptics.heavyTap();
-      widget.onTwoFingerDoubleTap!.call();
-      return;
-    }
-
-  }
+  // ─── Build ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: (_) => _activePointers++,
-      onPointerUp: (_) => _activePointers = (_activePointers - 1).clamp(0, 10),
-      onPointerCancel: (_) => _activePointers = 0,
+      onPointerDown: _onPointerDown,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
       child: GestureDetector(
+        // onDoubleTap is intentionally removed — it blocks onTap from firing
+        // on the 2nd tap, breaking the custom single/double/triple tap counter.
+        // Two-finger double tap is handled via Listener above instead.
         onTap: _handleTap,
-        onDoubleTap: _handleDoubleTap,
         onPanStart: _handlePanStart,
         onPanEnd: _handlePanEnd,
-
-
         onLongPressStart: widget.onLongPressStart != null ? _handleLongPressStart : null,
         onLongPressEnd: widget.onLongPressEnd != null ? _handleLongPressEnd : null,
         onLongPressCancel: widget.onLongPressCancel != null ? _handleLongPressCancel : null,
-
         behavior: HitTestBehavior.opaque,
         child: widget.child,
       ),

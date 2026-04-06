@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -85,15 +84,17 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         !_cameraService.controller!.value.isInitialized) {
       await _cameraService.initializeCamera();
     }
-
+ 
     final controller = _cameraService.controller;
     if (controller != null && controller.value.isInitialized) {
-      _guidance.startMonitoring(controller);
-
+ 
       await Future.delayed(const Duration(milliseconds: 500));
-      await _audio.speak(
+      await _audio.speakAndWait(
         "Accessibility Lens ready. Single tap to describe scene. Double tap to read text, Triple tap to repeat last message, Hold the microphone to speak a command, say Help for a list of commands.",
       );
+
+      _guidance.startMonitoring(controller);
+
       await _voice.init();
     } else {
       await _audio.speak("Camera not ready");
