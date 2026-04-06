@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class VisualOverlay extends StatelessWidget {
@@ -40,37 +41,46 @@ class VisualOverlay extends StatelessWidget {
       top: 0,
       left: 0,
       right: 0,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 50, 20, 15),
-        decoration: const BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(20),
-            bottomRight: Radius.circular(20),
-          ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              topMessage ?? 'ACCESSIBILITY LENS',
-                style: const TextStyle(
-                  color: Color(0xFFFFC107),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                ),
-            ),
-            if (showSettings)
-              GestureDetector(
-                onTap: onSettingsTap,
-                child: const Icon(
-                  Icons.settings,
-                  color: Color(0xFFFFC107),
-                  size: 28,
-                ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // blur
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 50, 20, 15),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3), // 30% black topbar
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
               ),
-          ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  topMessage ?? 'Accessibility Lens',
+                  style: const TextStyle(
+                    color: Color(0xFFFFC107),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                if (showSettings)
+                  GestureDetector(
+                    onTap: onSettingsTap,
+                    child: const Icon(
+                      Icons.settings,
+                      color: Color(0xFFFFC107),
+                      size: 28,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
