@@ -54,12 +54,12 @@ class VisualOverlay extends StatelessWidget {
           children: [
             Text(
               topMessage ?? 'ACCESSIBILITY LENS',
-              style: const TextStyle(
-                color: Color(0xFFFFC107),
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
+                style: const TextStyle(
+                  color: Color(0xFFFFC107),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
             ),
             if (showSettings)
               GestureDetector(
