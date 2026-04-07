@@ -9,6 +9,9 @@ Accessibility Lens uses your phone camera to:
 - Read text in view (OCR + cleaned text-to-speech).
 - Provide safety guidance when the camera is covered or the environment is too dark.
 
+###
+- Open the application using **Google Voice Assistant**
+
 ## Main gestures (Home screen)
 
 ### Single tap — Describe scene
