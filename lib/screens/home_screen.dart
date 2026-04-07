@@ -134,6 +134,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_busy) return;
     _busy = true;
 
+    await _stopHoldToTalk();
+
     final controller = _cameraService.controller;
 
     if (controller == null || !controller.value.isInitialized) {
@@ -159,6 +161,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (await file.exists()) await file.delete();
       });
     } catch (e) {
+      print("UI CATCH BLOCK TRIGGERED: $e");
       await _audio.speak("Failed to analyze the scene.");
     } finally {
       if (mounted) setState(() => _statusMessage = "Ready");
@@ -170,6 +173,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _handleDoubleTap() async {
     if (_busy) return;
     _busy = true;
+
+    await _stopHoldToTalk();
 
     final controller = _cameraService.controller;
 
@@ -200,6 +205,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (await file.exists()) await file.delete();
       });
     } catch (e) {
+      print("UI CATCH BLOCK TRIGGERED: $e");
       await _audio.speak("Failed to process the image.");
     } finally {
       if (mounted) setState(() => _statusMessage = "Ready");
@@ -303,8 +309,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // Voice Command Handling
   Future<void> _executeVoiceCommand(String words) async {
+    if (_audio.isSpeaking) return;
     final cmd = VoiceCommandParser.parse(words);
-
     if (cmd == VoiceCommand.unknown) return;
 
     // Silent cooldown ignore
@@ -360,7 +366,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // Help
       case VoiceCommand.help:
         await _audio.speak(
-          "Commands: Capture scene, Capture text, Volume up, Volume down, Stop, Force stop, Exit, Repeat, and Help.",
+          "Help. Gestures: single tap describe scene, double tap read text, triple tap repeat, swipe up or down changes speech speed, swipe left turns speech off, swipe right turns speech on. Voice commands: capture scene, capture text, volume up, volume down, stop, repeat, exit, force stop, and help."
         );
         break;
 

@@ -54,13 +54,6 @@ dependencies:
   # Permissions
   permission_handler: ^12.0.1
 
-  characters: ^1.4.0
-  matcher: ^0.12.17
-  material_color_utilities: 0.13.0
-  meta: ^1.17.0
-  test_api: ^0.7.7
-
-
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8

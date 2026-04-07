@@ -6,6 +6,7 @@ import 'dart:io';
 /// GEMINI AI Model
 GenerativeModel _createGeminiModel(String systemInstruction) {
   final apiKey = dotenv.maybeGet('GEMINI_API_KEY');
+  
   if (apiKey == null || apiKey.trim().isEmpty) {
     throw Exception('GEMINI_API_KEY missing. Add it to .env (and list .env in pubspec assets).');
   }
@@ -26,7 +27,7 @@ GenerativeModel _createGeminiModel(String systemInstruction) {
 /// OCR Detection
 class TextRecognitionService {
   final TextRecognizer _textRecognizer =
-  TextRecognizer(script: TextRecognitionScript.latin);
+      TextRecognizer(script: TextRecognitionScript.latin);
   late final GenerativeModel _geminiModel;
 
   TextRecognitionService() {
@@ -43,20 +44,25 @@ class TextRecognitionService {
   }
 
   Future<String> processImage(String path) async {
-    final inputImage = InputImage.fromFilePath(path);
-    final RecognizedText recognizedText =
-    await _textRecognizer.processImage(inputImage);
-    final String rawText = recognizedText.text.trim();
+    try {
+      final inputImage = InputImage.fromFilePath(path);
+      final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+      final String rawText = recognizedText.text.trim();
 
-    // return empty so we don't call Gemini.
-    if (rawText.length < 3) return "";
+      // Return empty so we don't call Gemini for empty images
+      if (rawText.length < 3) return "";
 
-    // The API request
-    final response = await _geminiModel.generateContent(
-      [Content.text("Here is the raw text to read:\n$rawText")],
-    );
+      // The API request
+      final response = await _geminiModel.generateContent(
+        [Content.text("Here is the raw text to read:\n$rawText")],
+      );
 
-    return response.text?.trim() ?? "";
+      return response.text?.trim() ?? "";
+    } catch (e) {
+      // Print the error so it shows up in VS Code, then pass it up to the UI
+      print("TextRecognition Error: $e");
+      rethrow; 
+    }
   }
 
   void dispose() {
@@ -86,16 +92,21 @@ class SceneDescriptionService {
   }
 
   Future<String> describeScene(String path) async {
-    final file = File(path);
-    final imageBytes = await file.readAsBytes();
+    try {
+      final file = File(path);
+      final imageBytes = await file.readAsBytes();
 
-    final response = await _geminiModel.generateContent([
-      Content.multi([
-        TextPart("Describe this scene for me."),
-        DataPart('image/jpeg', imageBytes)
-      ])
-    ]);
+      final response = await _geminiModel.generateContent([
+        Content.multi([
+          TextPart("Describe this scene for me."),
+          DataPart('image/jpeg', imageBytes)
+        ])
+      ]);
 
-    return response.text?.trim() ?? "I see a scene but cannot describe it right now.";
+      return response.text?.trim() ?? "I see a scene but cannot describe it right now.";
+    } catch (e) {
+      print("SceneDescription Error: $e");
+      rethrow;
+    }
   }
 }

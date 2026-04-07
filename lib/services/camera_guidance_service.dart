@@ -76,8 +76,8 @@ class CameraGuidanceService {
       if (_shouldAnnounce()) {
         _announceState(newState);
         _lastAnnouncementTime = DateTime.now();
+        _lastState = newState; 
       }
-      _lastState = newState;
     }
 
     _updateHapticFeedback(newState);

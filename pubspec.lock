@@ -74,7 +74,7 @@ packages:
     source: hosted
     version: "0.3.5+3"
   characters:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: characters
       sha256: faf38497bda5ead2a8c7615f4f7939df04333478bf32e4173fcb06d428b5716b
@@ -361,7 +361,7 @@ packages:
     source: hosted
     version: "1.3.0"
   matcher:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: matcher
       sha256: dc0b7dc7651697ea4ff3e69ef44b0407ea32c487a39fff6a4004fa585e901861
@@ -369,7 +369,7 @@ packages:
     source: hosted
     version: "0.12.19"
   material_color_utilities:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: material_color_utilities
       sha256: "9c337007e82b1889149c82ed242ed1cb24a66044e30979c44912381e9be4c48b"
@@ -377,7 +377,7 @@ packages:
     source: hosted
     version: "0.13.0"
   meta:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: meta
       sha256: "23f08335362185a5ea2ad3a4e597f1375e78bce8a040df5c600c8d3552ef2394"
@@ -630,7 +630,7 @@ packages:
     source: hosted
     version: "1.2.2"
   test_api:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: test_api
       sha256: "8161c84903fd860b26bfdefb7963b3f0b68fee7adea0f59ef805ecca346f0c7a"
