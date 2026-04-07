@@ -458,14 +458,21 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
+    // Check orientation to swap width/height for correct preview display
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
     return SemanticCameraView(
       statusMessage: _getCameraStatusMessage(),
       child: SizedBox.expand(
         child: FittedBox(
           fit: BoxFit.cover,
           child: SizedBox(
-            width: controller.value.previewSize!.height,
-            height: controller.value.previewSize!.width,
+            width: isPortrait 
+                ? controller.value.previewSize!.height 
+                : controller.value.previewSize!.width,
+            height: isPortrait 
+                ? controller.value.previewSize!.width 
+                : controller.value.previewSize!.height,
             child: CameraPreview(controller),
           ),
         ),
