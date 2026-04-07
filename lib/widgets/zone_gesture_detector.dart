@@ -18,6 +18,7 @@ class ZoneGestureDetector extends StatefulWidget {
   final VoidCallback? onSwipeLeft;
   final VoidCallback? onSwipeRight;
 
+
   const ZoneGestureDetector({
     super.key,
     required this.child,
@@ -48,9 +49,14 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   Offset? _swipeStart;
   static const double swipeThreshold = 50.0;
 
-
+  int _activePointers = 0;
+  void _onPointerDown(PointerDownEvent event) {
+    _activePointers++;
+  }
 
   void _handleTap() {
+    if (_activePointers >= 2) return;
+
     final now = DateTime.now();
 
     if (_lastTapTime != null && now.difference(_lastTapTime!) < doubleTapWindow) {
@@ -76,6 +82,13 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     });
   }
 
+  void _onPointerCancel(PointerCancelEvent event) {
+    _activePointers = 0;
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    _activePointers = (_activePointers - 1).clamp(0, 10);
+  }
 
   void _handleLongPressStart(LongPressStartDetails details) {
     _haptics.lightTap();
@@ -149,6 +162,9 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   @override
   Widget build(BuildContext context) {
     return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
       child: GestureDetector(
         onTap: _handleTap,
         onPanStart: _handlePanStart,
