@@ -1,18 +1,18 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:volume_controller/volume_controller.dart';
-import 'package:camera/camera.dart';
-import '../services/camera_service.dart';
 import '../services/camera_guidance_service.dart';
-import '../services/tts_service.dart';
+import '../services/camera_service.dart';
 import '../services/haptic_service.dart';
 import '../services/ml_kit_service.dart';
+import '../services/tts_service.dart';
 import '../services/voice_command_service.dart';
-import '../widgets/zone_gesture_detector.dart';
 import '../widgets/semantic_widgets.dart';
+import '../widgets/zone_gesture_detector.dart';
 import 'settings_screen.dart';
-import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,10 +28,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final HapticService _haptics = HapticService();
   final SceneDescriptionService _sceneService = SceneDescriptionService();
   final TextRecognitionService _textService = TextRecognitionService();
-
   final VoiceCommandService _voice = VoiceCommandService();
 
-  // holding the last recognized voice command to allow repeating it if needed
   String _lastHeard = "";
   Timer? _holdTimer;
 
@@ -71,8 +69,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       _guidance.stopMonitoring();
     } else if (state == AppLifecycleState.resumed) {
       _guidance.startMonitoring(cameraController);
@@ -80,14 +77,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _initializeServices() async {
-    if (_cameraService.controller == null ||
-        !_cameraService.controller!.value.isInitialized) {
+    if (_cameraService.controller == null || !_cameraService.controller!.value.isInitialized) {
       await _cameraService.initializeCamera();
     }
- 
+
     final controller = _cameraService.controller;
     if (controller != null && controller.value.isInitialized) {
- 
       await Future.delayed(const Duration(milliseconds: 500));
       await _audio.speakAndWait(
         "Accessibility Lens ready. Single tap to describe scene. Double tap to read text, Triple tap to repeat last message, Hold the microphone to speak a command, say Help for a list of commands.",
@@ -113,10 +108,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       return await action();
     } finally {
-      if (wasMonitoring &&
-          controller != null &&
-          controller.value.isInitialized &&
-          mounted) {
+      if (wasMonitoring && controller != null && controller.value.isInitialized && mounted) {
         _guidance.startMonitoring(controller);
       }
     }
@@ -142,9 +134,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       await _withStreamPaused(() async {
         final XFile photo = await controller.takePicture();
-        final String description = await _sceneService.describeScene(
-          photo.path,
-        );
+        final String description = await _sceneService.describeScene(photo.path);
 
         _haptics.success();
         await _audio.speak(description);
@@ -161,7 +151,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Double Tap: Text recognition
   Future<void> _handleDoubleTap() async {
     if (_busy) return;
     _busy = true;
@@ -182,9 +171,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       await _withStreamPaused(() async {
         final XFile photo = await controller.takePicture();
-        final String extractedText = await _textService.processImage(
-          photo.path,
-        );
+        final String extractedText = await _textService.processImage(photo.path);
 
         if (extractedText.isEmpty) {
           await _audio.speak("No text detected in view.");
@@ -237,33 +224,20 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _audio.speak("Speech on");
   }
 
-  // Voice Command Cooldown Management
   static const Duration _defaultCooldown = Duration(milliseconds: 900);
   static const Map<VoiceCommand, Duration> _commandCooldowns = {
     VoiceCommand.captureScene: Duration(milliseconds: 1500),
     VoiceCommand.captureText: Duration(milliseconds: 1500),
-
-    // allow stopping quickly
     VoiceCommand.stop: Duration(milliseconds: 250),
-
-    // avoid accidental repeats / spam
     VoiceCommand.repeat: Duration(milliseconds: 700),
     VoiceCommand.help: Duration(seconds: 2),
-
-    // volume changes can be rapid but not too spammy
     VoiceCommand.volumeUp: Duration(milliseconds: 350),
     VoiceCommand.volumeDown: Duration(milliseconds: 350),
-
-    // speech rate changes
     VoiceCommand.speedUp: Duration(milliseconds: 450),
     VoiceCommand.slowDown: Duration(milliseconds: 450),
-
-    // “dangerous” commands: slow them down a lot
     VoiceCommand.exit: Duration(seconds: 3),
-    VoiceCommand.forceStop: Duration(seconds: 3),
   };
 
-  // Voice Command Parsing Logic
   bool _isOnCooldown(VoiceCommand cmd) {
     final last = _lastCommandTime[cmd];
     if (last == null) return false;
@@ -272,7 +246,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return DateTime.now().difference(last) < cooldown;
   }
 
-  // Voice Command Execution
   Future<void> _startHoldToTalk() async {
     if (_busy) return;
     if (_voice.isListening) return;
@@ -299,54 +272,45 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) setState(() => _statusMessage = "Ready");
   }
 
-  // Voice Command Handling
   Future<void> _executeVoiceCommand(String words) async {
     if (_audio.isSpeaking) return;
     final cmd = VoiceCommandParser.parse(words);
     if (cmd == VoiceCommand.unknown) return;
 
-    // Silent cooldown ignore
     if (_isOnCooldown(cmd)) return;
     _markExecuted(cmd);
 
     switch (cmd) {
-      // Capture Scene
       case VoiceCommand.captureScene:
-        await _audio.stop(); // Stop any ongoing speech
+        await _audio.stop();
         await _handleSingleTap();
         break;
 
-      // Capture Text
       case VoiceCommand.captureText:
         await _audio.stop();
         await _handleDoubleTap();
         break;
 
-      // Volume Up
       case VoiceCommand.volumeUp:
         final v = await VolumeController.instance.getVolume();
         await VolumeController.instance.setVolume((v + 0.1).clamp(0.0, 1.0));
         await _audio.speak("Volume up");
         break;
 
-      // Volume Down
       case VoiceCommand.volumeDown:
         final v = await VolumeController.instance.getVolume();
         await VolumeController.instance.setVolume((v - 0.1).clamp(0.0, 1.0));
         await _audio.speak("Volume down");
         break;
 
-      // Stop
       case VoiceCommand.stop:
         await _audio.stop();
         break;
 
-      // Repeat
       case VoiceCommand.repeat:
         await _audio.repeatLast();
         break;
 
-      // Adjust Speech Rate
       case VoiceCommand.speedUp:
         await _handleSwipeUp();
         break;
@@ -355,14 +319,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         await _handleSwipeDown();
         break;
 
-      // Help
       case VoiceCommand.help:
         await _audio.speak(
-          "Help. Gestures: single tap describe scene, double tap read text, triple tap repeat, swipe up or down changes speech speed, swipe left turns speech off, swipe right turns speech on. Voice commands: capture scene, capture text, volume up, volume down, stop, repeat, exit, force stop, and help."
+          "Help. Gestures: single tap describe scene, double tap read text, triple tap repeat, swipe up or down changes speech speed, swipe left turns speech off, swipe right turns speech on. Voice commands: capture scene, capture text, volume up, volume down, stop, repeat, exit, and help.",
         );
         break;
 
-      // Exit
       case VoiceCommand.exit:
         await _audio.stop();
         await _audio.speak("Exiting");
@@ -370,31 +332,17 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         SystemNavigator.pop();
         break;
 
-      // force stop: stop speech, stop camera stream, and re-init services
-      case VoiceCommand.forceStop:
-        await _audio.stop();
-        _guidance.stopMonitoring();
-        _cameraService.dispose();
-        await _audio.speak("Resetting");
-        await Future.delayed(const Duration(milliseconds: 200));
-        await _cameraService.initializeCamera();
-        final controller = _cameraService.controller;
-        if (controller != null && controller.value.isInitialized) {
-          _guidance.startMonitoring(controller);
-        }
-        break;
-
       case VoiceCommand.unknown:
-        // ignore unknowns to avoid noisy feedback
         break;
     }
   }
-  
+
   void _openSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -420,7 +368,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: SemanticGestureZone(
         label: "Camera interface",
         hint:
-            "Single tap describe scene, double tap read text, triple tap repeat, swipe up or down change speed, swipe left speech off, swipe right speech on, hold the microphone to speak a command, say help for a list of commands.",
+        "Single tap describe scene, double tap read text, triple tap repeat, swipe up or down change speed, swipe left speech off, swipe right speech on, hold the microphone to speak a command, say help for a list of commands.",
         child: ZoneGestureDetector(
           onSingleTap: _handleSingleTap,
           onDoubleTap: _handleDoubleTap,
@@ -458,7 +406,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
-    // Check orientation to swap width/height for correct preview display
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return SemanticCameraView(
@@ -467,12 +414,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: FittedBox(
           fit: BoxFit.cover,
           child: SizedBox(
-            width: isPortrait 
-                ? controller.value.previewSize!.height 
-                : controller.value.previewSize!.width,
-            height: isPortrait 
-                ? controller.value.previewSize!.width 
-                : controller.value.previewSize!.height,
+            width: isPortrait ? controller.value.previewSize!.height : controller.value.previewSize!.width,
+            height: isPortrait ? controller.value.previewSize!.width : controller.value.previewSize!.height,
             child: CameraPreview(controller),
           ),
         ),

@@ -6,7 +6,6 @@ enum VoiceCommand {
   volumeUp, // Increase the volume of the speech output
   volumeDown, // Decrease the volume of the speech output
   stop, // Stop the prompted message
-  forceStop, // Force stop the app itself
   exit, // Exit the app
   speedUp, // Speed up the speech rate
   slowDown, // Slow down the speech rate  
@@ -58,13 +57,6 @@ class VoiceCommandParser {
       return VoiceCommand.stop;
     }
 
-    // Force Stop App
-    if (text.contains("force stop") ||
-        text.contains("force close") ||
-        text.contains("reset app") ||
-        text.contains("restart app")) {
-      return VoiceCommand.forceStop;
-    }
 
     // Exit App
     if (text == "exit" ||
