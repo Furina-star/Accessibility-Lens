@@ -39,8 +39,6 @@ dependencies:
 
   # AI / ML Kit
   google_mlkit_text_recognition: ^0.15.1
-  google_mlkit_barcode_scanning: ^0.14.2
-  google_mlkit_object_detection: ^0.15.1
   google_generative_ai: ^0.4.0
   flutter_dotenv: ^6.0.0
   
@@ -58,7 +56,7 @@ dependencies:
 
   characters: ^1.4.0
   matcher: ^0.12.17
-  material_color_utilities: 0.11.1
+  material_color_utilities: 0.13.0
   meta: ^1.17.0
   test_api: ^0.7.7
 

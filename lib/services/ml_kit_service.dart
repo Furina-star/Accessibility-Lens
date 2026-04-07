@@ -48,7 +48,6 @@ class TextRecognitionService {
     await _textRecognizer.processImage(inputImage);
     final String rawText = recognizedText.text.trim();
 
-    // FIX: If text is basically non-existent (less than 3 characters), 
     // return empty so we don't call Gemini.
     if (rawText.length < 3) return "";
 
@@ -65,7 +64,7 @@ class TextRecognitionService {
   }
 }
 
-/// --- Scene Detection ---
+/// Scene Detection 
 class SceneDescriptionService {
   late final GenerativeModel _geminiModel;
 
