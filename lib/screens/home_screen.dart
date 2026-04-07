@@ -400,11 +400,17 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         foregroundColor: const Color(0xFFFFC107),
-        title: const Text("Accessibility Lens"),
+        title: const Text(
+          "Accessibility Lens",
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
