@@ -45,25 +45,19 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   final AudioFeedbackManager _audio = AudioFeedbackManager();
   final HapticService _haptics = HapticService();
 
-  // --- Single / Double / Triple tap ---
   int _tapCount = 0;
   DateTime? _lastTapTime;
   static const Duration doubleTapWindow = Duration(milliseconds: 300);
 
-  // --- Swipe ---
   Offset? _swipeStart;
   static const double swipeThreshold = 50.0;
 
-  // --- Two-finger one tap ---
   int _activePointers = 0;
   int _twoFingerTapCount = 0;
   DateTime? _lastTwoFingerTapTime;
   static const Duration twoFingerDoubleTapWindow = Duration(milliseconds: 400);
 
-  // ─── Tap handling ────────────────────────────────────────────────────────────
-
   void _handleTap() {
-    // Ignore taps that are part of a two-finger gesture
     if (_activePointers >= 2) return;
 
     final now = DateTime.now();
@@ -91,7 +85,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     });
   }
 
-  // ─── Two-finger double tap (via Listener) ────────────────────────────────────
 
   void _onPointerDown(PointerDownEvent event) {
     _activePointers++;
@@ -126,8 +119,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     _twoFingerTapCount = 0;
   }
 
-  // ─── Long press ──────────────────────────────────────────────────────────────
-
   void _handleLongPressStart(LongPressStartDetails details) {
     _haptics.lightTap();
     widget.onLongPressStart?.call();
@@ -142,8 +133,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     _haptics.lightTap();
     widget.onLongPressCancel?.call();
   }
-
-  // ─── Swipe ───────────────────────────────────────────────────────────────────
 
   void _handlePanStart(DragStartDetails details) {
     _swipeStart = details.globalPosition;
@@ -199,8 +188,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     }
   }
 
-  // ─── Build ───────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Listener(
@@ -208,9 +195,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
       onPointerUp: _onPointerUp,
       onPointerCancel: _onPointerCancel,
       child: GestureDetector(
-        // onDoubleTap is intentionally removed — it blocks onTap from firing
-        // on the 2nd tap, breaking the custom single/double/triple tap counter.
-        // Two-finger double tap is handled via Listener above instead.
         onTap: _handleTap,
         onPanStart: _handlePanStart,
         onPanEnd: _handlePanEnd,
