@@ -51,7 +51,7 @@ Examples:
 Important:
 - When speech is off, the app may still give haptic taps and will remember the last message for repeat.
 
-### Two-finger one tap — Panic / Silence
+### Two-finger tap — Panic / Silence
 - Immediately stops speech and stops vibration.
 - Resets the status message back to “Ready”.
 
