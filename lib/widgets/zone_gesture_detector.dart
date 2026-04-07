@@ -18,9 +18,6 @@ class ZoneGestureDetector extends StatefulWidget {
   final VoidCallback? onSwipeLeft;
   final VoidCallback? onSwipeRight;
 
-  // force stop tts
-  final VoidCallback? onTwoFingerDoubleTap;
-
   const ZoneGestureDetector({
     super.key,
     required this.child,
@@ -34,7 +31,6 @@ class ZoneGestureDetector extends StatefulWidget {
     this.onSwipeDown,
     this.onSwipeLeft,
     this.onSwipeRight,
-    this.onTwoFingerDoubleTap,
   });
 
   @override
@@ -52,14 +48,9 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   Offset? _swipeStart;
   static const double swipeThreshold = 50.0;
 
-  int _activePointers = 0;
-  int _twoFingerTapCount = 0;
-  DateTime? _lastTwoFingerTapTime;
-  static const Duration twoFingerDoubleTapWindow = Duration(milliseconds: 400);
+
 
   void _handleTap() {
-    if (_activePointers >= 2) return;
-
     final now = DateTime.now();
 
     if (_lastTapTime != null && now.difference(_lastTapTime!) < doubleTapWindow) {
@@ -85,39 +76,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
     });
   }
 
-
-  void _onPointerDown(PointerDownEvent event) {
-    _activePointers++;
-
-    // Only track two-finger taps
-    if (_activePointers != 2) return;
-
-    final now = DateTime.now();
-
-    if (_lastTwoFingerTapTime != null &&
-        now.difference(_lastTwoFingerTapTime!) < twoFingerDoubleTapWindow) {
-      _twoFingerTapCount++;
-    } else {
-      _twoFingerTapCount = 1;
-    }
-
-    _lastTwoFingerTapTime = now;
-
-    if (_twoFingerTapCount >= 2 && widget.onTwoFingerDoubleTap != null) {
-      _twoFingerTapCount = 0;
-      _haptics.heavyTap();
-      widget.onTwoFingerDoubleTap!.call();
-    }
-  }
-
-  void _onPointerUp(PointerUpEvent event) {
-    _activePointers = (_activePointers - 1).clamp(0, 10);
-  }
-
-  void _onPointerCancel(PointerCancelEvent event) {
-    _activePointers = 0;
-    _twoFingerTapCount = 0;
-  }
 
   void _handleLongPressStart(LongPressStartDetails details) {
     _haptics.lightTap();
@@ -191,9 +149,6 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: _onPointerDown,
-      onPointerUp: _onPointerUp,
-      onPointerCancel: _onPointerCancel,
       child: GestureDetector(
         onTap: _handleTap,
         onPanStart: _handlePanStart,

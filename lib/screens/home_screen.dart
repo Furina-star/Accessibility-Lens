@@ -122,14 +122,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _panicSilence() async {
-    _busy = false;
-    await _audio.stop(); // force stop TTS
-    _haptics.stop();     // cancel vibration
-
-    if (mounted) setState(() => _statusMessage = "Ready");
-  }
-
   Future<void> _handleSingleTap() async {
     if (_busy) return;
     _busy = true;
@@ -430,7 +422,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         hint:
             "Single tap describe scene, double tap read text, triple tap repeat, swipe up or down change speed, swipe left speech off, swipe right speech on, hold the microphone to speak a command, say help for a list of commands.",
         child: ZoneGestureDetector(
-          onTwoFingerDoubleTap: _panicSilence,
           onSingleTap: _handleSingleTap,
           onDoubleTap: _handleDoubleTap,
           onTripleTap: _handleTripleTap,
