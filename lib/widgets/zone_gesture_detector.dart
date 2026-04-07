@@ -54,7 +54,7 @@ class _ZoneGestureDetectorState extends State<ZoneGestureDetector> {
   Offset? _swipeStart;
   static const double swipeThreshold = 50.0;
 
-  // --- Two-finger double tap ---
+  // --- Two-finger one tap ---
   int _activePointers = 0;
   int _twoFingerTapCount = 0;
   DateTime? _lastTwoFingerTapTime;
